@@ -46,3 +46,5 @@ one word verdict - 'completed' | 'no'
 ```
 
 ## Index
+
+- [Untw Tailwind Deconstruction Surface](docs/audits/untw-tailwind-deconstruct.md) — Re-audit of untw state delivery confirming resolution of all audit findings, UI completeness, and clean tests.

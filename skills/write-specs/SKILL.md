@@ -72,6 +72,10 @@ If you find yourself writing the same idea in Summary, Problem, Goals, and Behav
 - Each section should earn its place — if a section would repeat another or contain only boilerplate, omit it.
 - As implementation evolves, update the spec and/or product documents. After finishing any task, always evaluate if there are docs to update.
 
+## Hard Stop
+
+There is a hard stop after product specs. Return these to the user, take feedback, make edits if suggested, and move forward only if user confirms that product specs are good, move to tech.
+
 When the spec document is approved by user, move to the next phase:
 
 ## Tech
@@ -100,4 +104,6 @@ Optional sections — include only when they add signal. Omit the heading entire
 - **Risks and mitigations** — Include when there are real failure modes, regressions, migration concerns, or rollout hazards worth calling out.
 - **Follow-ups** — Include when there is deferred cleanup or future work worth naming.
 
-When the tech specs are also approve, and you have a complete and approve product/feature specification along with the tech specs for it. You are ready to implement. Ask your user if want implementation next.
+## Hard Stop
+
+When both product and tech specs are complete, once again submit to user for approval and alignment. Make edits if suggested. When user confirms that all specs are approved. You can move to the implementation phase. Always ask user before moving to implementation.

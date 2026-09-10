@@ -3,7 +3,7 @@
 export const app = $state({
   dir: '',          // the app's own data directory (the project root)
   vsix: '',         // last packaged .vsix, for Reveal
-  view: 'themes',   // 'themes' | 'schemes' | 'argv'
+  view: 'themes',   // 'themes' | 'schemes' | 'argv' | 'sassy' | 'untw'
   doc: null,
   schemes: [],
   schema: { ui: [] },

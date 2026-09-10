@@ -4,10 +4,13 @@
   import SchemeBrowser from '$lib/SchemeBrowser.svelte'
   import ArgvBench from '$lib/ArgvBench.svelte'
   import ConvertSurface from '$lib/ConvertSurface.svelte'
+  import UntwSurface from '$lib/UntwSurface.svelte'
   import { app, say } from '$lib/store.svelte.js'
   import { sassy } from '$lib/sass/state.svelte.js'
   import { runPaste, copyOutput } from '$lib/sass/paste'
   import { runOnDisk } from '$lib/sass/disk'
+  import { untw, runConvert, copyText as copyUntw } from '$lib/untw/state.svelte.js'
+  import { summaryText } from '$lib/untw/decode.js'
   import { STATES } from '$lib/states.js'
   import { DEFAULT_SPEC } from '$lib/argv/spec.js'
 import { usageParts } from '$lib/argv/help.js'
@@ -154,6 +157,11 @@ import { usageParts } from '$lib/argv/help.js'
       <button class="btn" onclick={copyOutput} disabled={!sassy.output}>{sassy.copied ? 'Copied' : 'Copy'}</button>
       <button class="btn" onclick={runOnDisk} disabled={sassy.busy}>On disk…</button>
     {/if}
+    {#if app.view === 'untw'}
+      <button class="btn primary" onclick={runConvert} disabled={untw.busy || !untw.input.trim()}>{untw.busy ? 'Working…' : 'Convert →'}</button>
+      <button class="btn" onclick={() => untw.result && copyUntw(summaryText(untw.result), 'summary', say)} disabled={!untw.result}>{untw.copied === 'summary' ? 'Copied' : 'Copy summary'}</button>
+      <button class="btn" onclick={() => untw.result && copyUntw(JSON.stringify(untw.result.tokens, null, 2), 'json', say)} disabled={!untw.result}>{untw.copied === 'json' ? 'Copied' : 'Copy JSON'}</button>
+    {/if}
   </div>
 </header>
 
@@ -175,6 +183,8 @@ import { usageParts } from '$lib/argv/help.js'
     <ArgvBench />
   {:else if app.view === 'sassy'}
     <ConvertSurface />
+  {:else if app.view === 'untw'}
+    <UntwSurface />
   {:else}
     <!-- No known surface selected: offer the full set to choose from. -->
     <div class="picker">

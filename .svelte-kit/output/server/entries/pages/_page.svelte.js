@@ -605,9 +605,6 @@ const DEFAULT_SPEC = () => ({
     }
   ]
 });
-const kebab = (s) => String(s || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-const camel = (s) => kebab(s).replace(/-(.)/g, (_, c) => c.toUpperCase());
-const isKebab = (s) => /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(s || "");
 const q = (s) => JSON.stringify(String(s ?? ""));
 const kids = (spec, id) => spec.commands.filter((c) => c.parent === (id === "root" ? null : id));
 const byId = (spec, id) => id === "root" ? null : spec.commands.find((c) => c.id === id) ?? null;
@@ -621,7 +618,6 @@ function chain(spec, id) {
   return out;
 }
 const isLeaf = (spec, c) => kids(spec, c.id).length === 0;
-const pathOf = (spec, id) => chain(spec, id).map((c) => c.name).join(" ");
 function argToken(a) {
   const n = a.name || "arg";
   if (a.arity === "variadic") return `[${n}...]`;
@@ -631,15 +627,6 @@ function argToken(a) {
 function optFlags(o) {
   const head = (o.short ? `-${o.short}, ` : "") + "--" + (o.long || "option");
   return o.type === "boolean" ? head : `${head} <${o.value || "value"}>`;
-}
-function optKey(o) {
-  const long = o.long || "";
-  return long.startsWith("no-") ? camel(long.slice(3)) : camel(long);
-}
-function scopeOpts(spec, id) {
-  const inherited = chain(spec, id).slice(0, -1).flatMap((c) => c.opts);
-  const own = byId(spec, id)?.opts ?? [];
-  return [...spec.globals ?? [], ...inherited, ...own];
 }
 function ArgvTree($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
@@ -942,93 +929,14 @@ function ArgvOutput($$renderer, $$props) {
     $$renderer2.push(`<!--]--></div>`);
   });
 }
-const RESERVED_LONG = /* @__PURE__ */ new Set(["help", "version"]);
-const RESERVED_SHORT = /* @__PURE__ */ new Set(["h", "V"]);
-function diagnose(spec) {
-  const out = [];
-  const push = (s, m, c) => out.push({ s, m, c });
-  if (!isKebab(spec.pkg.bin || "")) push("err", "Binary name must be kebab-case", spec.pkg.bin || "(empty)");
-  if (!/^\d+\.\d+\.\d+/.test(spec.pkg.version || "")) push("warn", "Version is not semver", spec.pkg.version || "(empty)");
-  for (const c of spec.commands) {
-    const path = pathOf(spec, c.id);
-    if (!isKebab(c.name || "")) push("err", "Command name must be kebab-case", c.name || "(empty)");
-    if (kids(spec, c.parent ?? "root").some((s) => s.id !== c.id && s.name === c.name)) {
-      push("err", "Duplicate sibling command", path);
-    }
-    if (kids(spec, c.id).length && c.args.length) {
-      push("warn", "Positionals are ignored on a command with subcommands", path);
-    }
-    let seenOptional = false;
-    let seenVariadic = false;
-    for (const a of c.args) {
-      if (seenVariadic) push("err", "A variadic argument must come last", `${path} ${argToken(a)}`);
-      if (a.arity === "variadic") seenVariadic = true;
-      else if (a.arity === "optional") seenOptional = true;
-      else if (seenOptional) push("err", "Required argument follows an optional one", `${path} <${a.name}>`);
-    }
-    const seenLong = /* @__PURE__ */ new Map();
-    const seenShort = /* @__PURE__ */ new Map();
-    for (const o of scopeOpts(spec, c.id)) {
-      if (!isKebab(o.long || "")) push("err", "Flag name must be kebab-case", `--${o.long || "?"} in ${path}`);
-      if (RESERVED_LONG.has(o.long)) push("warn", "Flag is reserved by commander", `--${o.long} in ${path}`);
-      const key = optKey(o);
-      if (seenLong.has(key)) push("err", "Two flags land on the same property", `${key} in ${path}`);
-      seenLong.set(key, o);
-      if (o.short) {
-        if (!/^[A-Za-z]$/.test(o.short)) push("err", "Short flag must be a single letter", `-${o.short} in ${path}`);
-        if (RESERVED_SHORT.has(o.short)) push("warn", "Short flag is reserved by commander", `-${o.short} in ${path}`);
-        if (seenShort.has(o.short)) push("err", "Duplicate short flag in scope", `-${o.short} in ${path}`);
-        seenShort.set(o.short, o);
-      }
-      if (o.type === "enum" && !String(o.choices || "").trim()) {
-        push("warn", "Choice flag lists no choices", `--${o.long} in ${path}`);
-      }
-      if (o.type === "number" && o.def && !Number.isFinite(Number(o.def))) {
-        push("err", "Numeric default is not a number", `--${o.long} in ${path}`);
-      }
-    }
-    if (!c.desc) push("warn", "Command has no summary — it will print blank in help", path);
-  }
-  if (!out.length) push("ok", "Grammar is well formed", "");
-  return out;
-}
 function ArgvBench($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
     let spec = DEFAULT_SPEC();
     let sel = "root";
-    let loaded = false;
-    let saving = false;
-    const dirty = derived(() => loaded);
-    const usage = derived(() => usageParts(spec, sel));
-    const diags = derived(() => diagnose(spec));
     let $$settled = true;
     let $$inner_renderer;
     function $$render_inner($$renderer3) {
-      $$renderer3.push(`<div class="bench svelte-ydwstf"><div class="synopsis svelte-ydwstf"><div class="line svelte-ydwstf"><span class="spacer svelte-ydwstf"></span> `);
-      if (dirty()) {
-        $$renderer3.push(`<!--[0--><span class="dirty svelte-ydwstf">unsaved</span>`);
-      } else {
-        $$renderer3.push("<!--[-1-->");
-      }
-      $$renderer3.push(`<!--]--> <button class="btn">Reset</button> <button class="btn primary"${attr("disabled", saving, true)}>${escape_html("Save spec")}</button></div> <div class="usage svelte-ydwstf"><!--[-->`);
-      const each_array = ensure_array_like(usage());
-      for (let $$index = 0, $$length = each_array.length; $$index < $$length; $$index++) {
-        let p = each_array[$$index];
-        $$renderer3.push(`<span${attr_class(clsx(p.t), "svelte-ydwstf")}>${escape_html(p.v)}</span> `);
-      }
-      $$renderer3.push(`<!--]--></div> <div class="diags svelte-ydwstf"><!--[-->`);
-      const each_array_1 = ensure_array_like(diags());
-      for (let $$index_1 = 0, $$length = each_array_1.length; $$index_1 < $$length; $$index_1++) {
-        let d = each_array_1[$$index_1];
-        $$renderer3.push(`<span${attr_class(`diag ${stringify(d.s)}`, "svelte-ydwstf")}>${escape_html(d.m)}`);
-        if (d.c) {
-          $$renderer3.push(`<!--[0--><code class="svelte-ydwstf">${escape_html(d.c)}</code>`);
-        } else {
-          $$renderer3.push("<!--[-1-->");
-        }
-        $$renderer3.push(`<!--]--></span>`);
-      }
-      $$renderer3.push(`<!--]--></div></div> <div class="cols svelte-ydwstf"><div class="col tree svelte-ydwstf">`);
+      $$renderer3.push(`<div class="bench svelte-ydwstf"><div class="cols svelte-ydwstf"><div class="col tree svelte-ydwstf">`);
       ArgvTree($$renderer3, {
         spec,
         get sel() {
@@ -1094,16 +1002,55 @@ function ConvertSurface($$renderer, $$props) {
     $$renderer2.push(`<!--]--></div>`);
   });
 }
+const SAMPLE = `export function Card() {
+  return (
+    <div className="flex flex-col gap-4 p-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+      <h2 className="text-lg font-semibold text-slate-900 tracking-tight">Title</h2>
+      <p className="text-sm text-slate-500 leading-6">Body copy here</p>
+      <button className="mt-2 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-700">Action</button>
+    </div>
+  )
+}`;
+const untw = {
+  input: SAMPLE,
+  themeCss: ""
+};
+function UntwSurface($$renderer, $$props) {
+  $$renderer.component(($$renderer2) => {
+    $$renderer2.push(`<div class="untw svelte-13g01xc"><div class="cols svelte-13g01xc"><div class="pane svelte-13g01xc"><div class="phd svelte-13g01xc"><span class="svelte-13g01xc">Component code</span> <div class="samples svelte-13g01xc"><button class="mini svelte-13g01xc">Card</button> <button class="mini svelte-13g01xc">Accordion</button> <button class="mini svelte-13g01xc">Clear</button></div></div> <textarea class="codebox svelte-13g01xc" spellcheck="false" placeholder="&lt;div className=&quot;flex gap-4 p-6 …&quot;>">`);
+    const $$body = escape_html(untw.input);
+    if ($$body) {
+      $$renderer2.push(`${$$body}`);
+    }
+    $$renderer2.push(`</textarea> <div class="phd svelte-13g01xc"><span class="svelte-13g01xc">Project theme — optional @theme CSS</span></div> <textarea class="codebox short svelte-13g01xc" spellcheck="false" placeholder="@theme {
+  --color-foreground: oklch(0.2 0 0);
+}">`);
+    const $$body_1 = escape_html(untw.themeCss);
+    if ($$body_1) {
+      $$renderer2.push(`${$$body_1}`);
+    }
+    $$renderer2.push(`</textarea> <p class="note svelte-13g01xc">Custom colors and animations resolve from the pasted theme. Everything runs offline.</p></div> <div class="pane results svelte-13g01xc">`);
+    {
+      $$renderer2.push(`<!--[1--><div class="blank svelte-13g01xc"><p>Paste code, then Convert →</p></div>`);
+    }
+    $$renderer2.push(`<!--]--></div></div></div>`);
+  });
+}
 const STATES = [
   { id: "themes", label: "Themes", full: false },
   { id: "schemes", label: "Schemes", full: true },
   { id: "argv", label: "Argv", full: true },
-  { id: "sassy", label: "Sassy", full: true }
+  { id: "sassy", label: "Sassy", full: true },
+  { id: "untw", label: "Untw", full: true }
 ];
 function _page($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
     const current = derived(() => STATES.find((s) => s.id === app.view));
     const wide = derived(() => app.view === "themes" ? !app.doc : current() ? current().full : true);
+    let spec = DEFAULT_SPEC();
+    const usage = derived(() => usageParts(spec, sel));
+    let sel = "root";
+    let saving = false;
     $$renderer2.push(`<header data-tauri-drag-region="" class="svelte-1uha8ag"><div class="global svelte-1uha8ag"><h1 data-tauri-drag-region="" class="svelte-1uha8ag">FractalDesk</h1> <div class="views svelte-1uha8ag" role="group" aria-label="Surface"><!--[-->`);
     const each_array = ensure_array_like(STATES);
     for (let $$index = 0, $$length = each_array.length; $$index < $$length; $$index++) {
@@ -1130,8 +1077,26 @@ function _page($$renderer, $$props) {
       $$renderer2.push("<!--[-1-->");
     }
     $$renderer2.push(`<!--]--> `);
+    if (app.view === "argv") {
+      $$renderer2.push(`<!--[0--><div class="usage"><!--[-->`);
+      const each_array_1 = ensure_array_like(usage());
+      for (let $$index_1 = 0, $$length = each_array_1.length; $$index_1 < $$length; $$index_1++) {
+        let p = each_array_1[$$index_1];
+        $$renderer2.push(`<span${attr_class(clsx(p.t), "svelte-1uha8ag")}>${escape_html(p.v)}</span> `);
+      }
+      $$renderer2.push(`<!--]--></div> <button class="btn">Reset</button> <button class="btn primary"${attr("disabled", saving, true)}>Save spec</button>`);
+    } else {
+      $$renderer2.push("<!--[-1-->");
+    }
+    $$renderer2.push(`<!--]--> `);
     if (app.view === "sassy") {
       $$renderer2.push(`<!--[0--><div class="chips svelte-1uha8ag" role="group" aria-label="Direction"><button${attr_class("chip svelte-1uha8ag", void 0, { "on": sassy.direction === "sass2css" })}>SASS → CSS</button> <button${attr_class("chip svelte-1uha8ag", void 0, { "on": sassy.direction === "css2sass" })}>CSS → SASS</button></div> <button class="btn primary"${attr("disabled", !sassy.input.trim(), true)}>Convert →</button> <button class="btn"${attr("disabled", true, true)}>${escape_html("Copy")}</button> <button class="btn"${attr("disabled", sassy.busy, true)}>On disk…</button>`);
+    } else {
+      $$renderer2.push("<!--[-1-->");
+    }
+    $$renderer2.push(`<!--]--> `);
+    if (app.view === "untw") {
+      $$renderer2.push(`<!--[0--><button class="btn primary"${attr("disabled", !untw.input.trim(), true)}>${escape_html("Convert →")}</button> <button class="btn"${attr("disabled", true, true)}>${escape_html("Copy summary")}</button> <button class="btn"${attr("disabled", true, true)}>${escape_html("Copy JSON")}</button>`);
     } else {
       $$renderer2.push("<!--[-1-->");
     }
@@ -1156,11 +1121,14 @@ function _page($$renderer, $$props) {
     } else if (app.view === "sassy") {
       $$renderer2.push("<!--[3-->");
       ConvertSurface($$renderer2);
+    } else if (app.view === "untw") {
+      $$renderer2.push("<!--[4-->");
+      UntwSurface($$renderer2);
     } else {
       $$renderer2.push(`<!--[-1--><div class="picker svelte-1uha8ag"><p class="svelte-1uha8ag">Pick a surface</p> <div class="views big svelte-1uha8ag"><!--[-->`);
-      const each_array_1 = ensure_array_like(STATES);
-      for (let $$index_1 = 0, $$length = each_array_1.length; $$index_1 < $$length; $$index_1++) {
-        let s = each_array_1[$$index_1];
+      const each_array_2 = ensure_array_like(STATES);
+      for (let $$index_2 = 0, $$length = each_array_2.length; $$index_2 < $$length; $$index_2++) {
+        let s = each_array_2[$$index_2];
         $$renderer2.push(`<button class="svelte-1uha8ag">${escape_html(s.label)}</button>`);
       }
       $$renderer2.push(`<!--]--></div></div>`);

@@ -69,6 +69,7 @@ src/
     +page.svelte          window chrome, actions, layout
   lib/
     store.svelte.js       $state store; `eff()` resolves override -> derived
+    states.js             surface registry (themes, schemes, argv, sassy, untw)
     Mock.svelte           the editor preview
     RoleTable.svelte      the 15 core roles
     WorkbenchTable.svelte the 37 overridable surfaces
@@ -76,6 +77,9 @@ src/
     Sidebar.svelte        theme list
     samples.js            the four language samples
     color.js              WCAG luminance and contrast
+    ConvertSurface.svelte sassy paste-conversion surface
+    UntwSurface.svelte    untw tailwind-deconstruction surface
+    untw/                 offline decode engine (extract, variants, resolve, map)
 src-tauri/src/lib.rs      commands: load, save, build, package, reveal, schemes, argv_*
 src-tauri/resources/      palettes.json + schemes-spec-0.11, bundled into the .app
 ```
