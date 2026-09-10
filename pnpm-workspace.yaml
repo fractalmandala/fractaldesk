@@ -1,0 +1,5 @@
+# Makes this app its own pnpm root so it does not inherit the fractutils
+# workspace; plain `pnpm install` then works from here.
+allowBuilds:
+  '@parcel/watcher': false
+  esbuild: true
