@@ -13,6 +13,13 @@ tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 
+# Native macOS open panel for the Sassy surface: one dialog that lets the user
+# select files AND folders together (the JS dialog plugin can only do one).
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSArray", "NSString", "NSURL"] }
+objc2-app-kit = { version = "0.3", features = ["NSOpenPanel", "NSSavePanel", "NSPanel", "NSWindow", "NSResponder", "NSView", "NSApplication"] }
+
 [profile.release]
 opt-level = "s"
 lto = true

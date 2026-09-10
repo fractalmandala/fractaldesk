@@ -17,6 +17,7 @@
 //          the button. Falsy (0, null, '') means no badge.
 export const STATES = [
   { id: 'themes', label: 'Themes', full: false },
-  { id: 'schemes', label: 'Schemes', full: true, badge: (app) => app.schemes.length || null },
+  { id: 'schemes', label: 'Schemes', full: true },
   { id: 'argv', label: 'Argv', full: true },
+  { id: 'sassy', label: 'Sassy', full: true },
 ]

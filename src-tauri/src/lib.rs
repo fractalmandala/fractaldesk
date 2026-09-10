@@ -1024,12 +1024,171 @@ fn argv_export(dir: String, files: Vec<FileOut>) -> Result<String, String> {
     Ok(format!("wrote {written} files to {dir}"))
 }
 
+// ------------------------------------------------------------------ sassy ----
+// Read/write helpers for the Sassy surface (a CSS ↔ SASS converter). The
+// frontend does the conversion; Rust only reads the chosen sources and writes
+// each result back as a sibling file with the swapped extension.
+
+#[derive(Serialize)]
+pub struct Src {
+    /// Absolute path of the source, as chosen in the native dialog.
+    path: String,
+    name: String,
+    body: String,
+}
+
+#[derive(Deserialize)]
+pub struct WriteItem {
+    /// One of the `path`s a prior `convert_scan` returned.
+    source: String,
+    body: String,
+}
+
+#[derive(Serialize)]
+pub struct WriteReport {
+    written: usize,
+    /// File names whose destination already existed and was overwritten.
+    overwritten: Vec<String>,
+}
+
+fn ext_lc(path: &Path) -> String {
+    path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase()
+}
+
+fn mk_src(path: &Path, body: String) -> Src {
+    Src {
+        path: path.to_string_lossy().into_owned(),
+        name: path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string(),
+        body,
+    }
+}
+
+/// Collect the style sources to convert. Each picked path is either a folder
+/// (its top-level files matching `from_ext` are taken — no recursion) or a
+/// single file with that extension. The text is read so the frontend can
+/// convert it.
+#[tauri::command]
+fn convert_scan(paths: Vec<String>, from_ext: String) -> Result<Vec<Src>, String> {
+    let want = from_ext.trim_start_matches('.').to_lowercase();
+    let mut out: Vec<Src> = Vec::new();
+    let mut seen: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
+
+    for p in &paths {
+        let pb = PathBuf::from(p);
+        if pb.is_dir() {
+            let Ok(entries) = std::fs::read_dir(&pb) else { continue };
+            for entry in entries.flatten() {
+                let ep = entry.path();
+                if ep.is_file() && ext_lc(&ep) == want && seen.insert(ep.clone()) {
+                    if let Ok(body) = std::fs::read_to_string(&ep) {
+                        out.push(mk_src(&ep, body));
+                    }
+                }
+            }
+        } else if pb.is_file() && ext_lc(&pb) == want && seen.insert(pb.clone()) {
+            // A file the user picked explicitly should surface a read error.
+            let body = std::fs::read_to_string(&pb)
+                .map_err(|e| format!("could not read {}: {e}", pb.display()))?;
+            out.push(mk_src(&pb, body));
+        }
+    }
+
+    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    Ok(out)
+}
+
+/// Write each converted result next to its source, swapping the extension
+/// (.sass ↔ .css). The destination is derived here from the trusted source path
+/// a scan returned — the frontend never supplies a raw destination — so writes
+/// stay confined to siblings of files the user picked. Existing files are
+/// overwritten and reported.
+#[tauri::command]
+fn convert_write(items: Vec<WriteItem>) -> Result<WriteReport, String> {
+    let mut written = 0usize;
+    let mut overwritten = Vec::new();
+    for item in &items {
+        let src = PathBuf::from(&item.source);
+        let to = match ext_lc(&src).as_str() {
+            "sass" => "css",
+            "css" => "sass",
+            other => return Err(format!("unexpected source extension .{other}")),
+        };
+        let dest = src.with_extension(to);
+        if dest.exists() {
+            overwritten.push(dest.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string());
+        }
+        let tmp = dest.with_extension(format!("{to}.tmp"));
+        std::fs::write(&tmp, &item.body).map_err(|e| format!("could not write {}: {e}", dest.display()))?;
+        std::fs::rename(&tmp, &dest).map_err(|e| format!("could not replace {}: {e}", dest.display()))?;
+        written += 1;
+    }
+    Ok(WriteReport { written, overwritten })
+}
+
+/// Read a file's text for the Dart Sass importer, which resolves @use/@import
+/// during sass→css. A read error (including "not found") is expected — the
+/// importer probes several candidate paths and moves on to the next.
+#[tauri::command]
+fn read_text(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|e| format!("{path}: {e}"))
+}
+
+/// One native open panel that lets the user select files AND folders together —
+/// the JS dialog plugin only supports one or the other, so this uses AppKit's
+/// NSOpenPanel directly. Returns the chosen absolute paths (empty if cancelled).
+#[tauri::command]
+fn pick_paths(app: AppHandle) -> Result<Vec<String>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        use std::sync::mpsc::channel;
+        let (tx, rx) = channel::<Vec<String>>();
+        app.run_on_main_thread(move || {
+            let paths = unsafe { open_panel_macos() };
+            let _ = tx.send(paths);
+        })
+        .map_err(|e| e.to_string())?;
+        rx.recv().map_err(|e| e.to_string())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        Err("the files-and-folders picker is only available on macOS".into())
+    }
+}
+
+#[cfg(target_os = "macos")]
+unsafe fn open_panel_macos() -> Vec<String> {
+    use objc2::MainThreadMarker;
+    use objc2_app_kit::NSOpenPanel;
+
+    let Some(mtm) = MainThreadMarker::new() else { return Vec::new() };
+    let panel = NSOpenPanel::openPanel(mtm);
+    panel.setCanChooseFiles(true);
+    panel.setCanChooseDirectories(true);
+    panel.setAllowsMultipleSelection(true);
+
+    // NSModalResponseOK == 1.
+    if panel.runModal() != 1 {
+        return Vec::new();
+    }
+
+    let urls = panel.URLs();
+    let mut out = Vec::with_capacity(urls.count());
+    for i in 0..urls.count() {
+        if let Some(path) = urls.objectAtIndex(i).path() {
+            out.push(path.to_string());
+        }
+    }
+    out
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            load, save, build, package, reveal, schemes, argv_load, argv_save, argv_export
+            load, save, build, package, reveal, schemes, argv_load, argv_save, argv_export,
+            convert_scan, convert_write, read_text, pick_paths
         ])
         .run(tauri::generate_context!())
         .expect("error while running FractalDesk");

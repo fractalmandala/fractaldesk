@@ -3,12 +3,12 @@
   import ThemesSurface from './lib/ThemesSurface.svelte'
   import SchemeBrowser from './lib/SchemeBrowser.svelte'
   import ArgvBench from './lib/ArgvBench.svelte'
+  import ConvertSurface from './lib/ConvertSurface.svelte'
   import { app, say } from './lib/store.svelte.js'
+  import { sassy } from './lib/sass/state.svelte'
+  import { runPaste, copyOutput } from './lib/sass/paste'
+  import { runOnDisk } from './lib/sass/disk'
   import { STATES } from './lib/states.js'
-
-  // Build stamp, injected by Vite from package.json — the header shows it so a
-  // stale install is obvious without comparing binaries.
-  const APP_VERSION = __APP_VERSION__
 
   // The active surface's config from the states registry (undefined = no known
   // surface selected, which falls through to the picker).
@@ -102,7 +102,7 @@
   <!-- GLOBAL: chrome that belongs to the whole app — the title, the surface
        switcher, and app-wide controls (a mode toggle will live here later). -->
   <div class="global">
-    <h1 data-tauri-drag-region>FractalDesk <em>{APP_VERSION}</em></h1>
+    <h1 data-tauri-drag-region>FractalDesk</h1>
     <div class="views" role="group" aria-label="Surface">
       {#each STATES as s}
         {@const badge = s.badge?.(app)}
@@ -133,6 +133,15 @@
         <button class="btn primary" onclick={save} disabled={app.busy}>Save</button>
       {/if}
     {/if}
+    {#if app.view === 'sassy'}
+      <div class="chips" role="group" aria-label="Direction">
+        <button class="chip" class:on={sassy.direction === 'sass2css'} onclick={() => (sassy.direction = 'sass2css')}>SASS → CSS</button>
+        <button class="chip" class:on={sassy.direction === 'css2sass'} onclick={() => (sassy.direction = 'css2sass')}>CSS → SASS</button>
+      </div>
+      <button class="btn primary" onclick={runPaste} disabled={sassy.busy || !sassy.input.trim()}>Convert →</button>
+      <button class="btn" onclick={copyOutput} disabled={!sassy.output}>{sassy.copied ? 'Copied' : 'Copy'}</button>
+      <button class="btn" onclick={runOnDisk} disabled={sassy.busy}>On disk…</button>
+    {/if}
   </div>
 </header>
 
@@ -152,6 +161,8 @@
     <SchemeBrowser />
   {:else if app.view === 'argv'}
     <ArgvBench />
+  {:else if app.view === 'sassy'}
+    <ConvertSurface />
   {:else}
     <!-- No known surface selected: offer the full set to choose from. -->
     <div class="picker">
@@ -186,13 +197,6 @@ header
     font-weight: 600
     letter-spacing: .02em
     white-space: nowrap
-    em
-      font-style: normal
-      font-weight: 400
-      font-family: var(--mono)
-      font-size: 10.5px
-      color: var(--muted)
-      margin-left: 5px
   .count
     font-family: var(--mono)
     font-size: 10.5px
@@ -254,6 +258,30 @@ header
       color: var(--ink)
     &.on
       background: var(--signal)
+      color: #fff
+
+// Per-surface controls that live in the header's .conditional zone (Sassy).
+.chips
+  display: flex
+  gap: 4px
+  .chip
+    appearance: none
+    background: transparent
+    border: 1px solid var(--rule)
+    border-radius: 2px
+    color: var(--muted)
+    cursor: pointer
+    font-family: var(--mono)
+    font-size: 10px
+    letter-spacing: .05em
+    text-transform: uppercase
+    padding: 4px 8px
+    white-space: nowrap
+    &:hover
+      color: var(--ink)
+    &.on
+      background: var(--signal)
+      border-color: var(--signal)
       color: #fff
 
 // The fallback surface picker: a larger, standalone version of the header nav.
