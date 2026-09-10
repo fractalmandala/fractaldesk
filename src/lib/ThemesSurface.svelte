@@ -8,7 +8,7 @@
   import { ratio, grade } from './color.js'
 
   // This surface owns everything that reads or writes the palette document.
-  // It only ever renders when `app.doc` is loaded (App.svelte guards that), so
+  // It only ever renders when `app.doc` is loaded (+page.svelte guards that), so
   // `entry` and `family` are always present here.
   const entry = $derived(app.doc.themes[app.cur])
   const family = $derived(app.doc.families[entry.family])
@@ -167,7 +167,7 @@ main
     min-width: 320px
   span
     font-family: var(--mono)
-    font-size: 10px
+    font-size: var(--text-xs)
     letter-spacing: .1em
     text-transform: uppercase
     color: var(--muted)
@@ -176,7 +176,7 @@ main
     border: 1px solid var(--rule)
     border-radius: 3px
     padding: 7px 9px
-    font-size: 13px
+    font-size: var(--text-md)
     &:focus
       outline: none
       border-color: var(--signal)
@@ -186,7 +186,7 @@ main
   textarea
     resize: vertical
     min-height: 62px
-    font: 13px/1.45 var(--sans)
+    font: var(--text-md)/1.45 var(--sans)
 
 .panes
   display: grid
@@ -203,14 +203,14 @@ main
   margin-bottom: 7px
   .t
     font-family: var(--mono)
-    font-size: 11px
+    font-size: var(--text-sm)
     letter-spacing: .1em
     text-transform: uppercase
     color: var(--ink-2)
 
 .cr
   font-family: var(--mono)
-  font-size: 10.5px
+  font-size: var(--text-xs)
   color: var(--muted)
   font-variant-numeric: tabular-nums
   b
@@ -231,7 +231,7 @@ details
     cursor: pointer
     padding: 11px 14px
     font-family: var(--mono)
-    font-size: 10.5px
+    font-size: var(--text-xs)
     letter-spacing: .1em
     text-transform: uppercase
     color: var(--ink-2)

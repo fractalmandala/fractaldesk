@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { sassy } from './sass/state.svelte'
+  import { sassy } from './sass/state.svelte.js'
 
   // Direction + input/output live in shared state; the header drives conversion.
   const direction = $derived(sassy.direction)
@@ -106,7 +106,7 @@
   min-height: 26px
   span
     font-family: var(--mono)
-    font-size: 10px
+    font-size: var(--text-xs)
     letter-spacing: .12em
     text-transform: uppercase
     color: var(--muted)
@@ -131,8 +131,7 @@
   padding: 12px 8px 12px 12px
   border-right: 1px solid var(--rule)
   font-family: var(--mono)
-  font-size: 12px
-  line-height: 1.6
+  font-size: var(--text-sm)
   color: var(--muted)
   text-align: right
   white-space: pre
@@ -147,8 +146,7 @@ textarea
   border: 0
   padding: 12px 14px
   font-family: var(--mono)
-  font-size: 12px
-  line-height: 1.6
+  font-size: var(--text-sm)
   color: var(--ink-2)
   tab-size: 2
   white-space: pre
@@ -169,8 +167,7 @@ textarea
   border-radius: 4px
   padding: 12px 14px
   font-family: var(--mono)
-  font-size: 12px
-  line-height: 1.6
+  font-size: var(--text-sm)
   color: var(--bad)
   white-space: pre-wrap
   overflow: auto
@@ -186,8 +183,7 @@ textarea
     flex: 1
     margin: 0
     font-family: var(--mono)
-    font-size: 11.5px
-    line-height: 1.55
+    font-size: var(--text-sm)
     color: var(--ink-2)
     white-space: pre-wrap
     max-height: 22vh
@@ -197,8 +193,7 @@ textarea
     border: 0
     color: var(--muted)
     cursor: pointer
-    font-size: 16px
-    line-height: 1
+    font-size: var(--text-bs)
     padding: 2px 4px
     &:hover
       color: var(--signal)

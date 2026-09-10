@@ -1,118 +1,211 @@
-// Daylight Studio — window chrome. Deliberately neutral graphite so the
-// specimens, which carry every hue, never compete with the app around them.
+@font-face
+	font-family: "Atkinson Hyperlegible Next"
+	src: url('/fonts/ahn.woff2') format ('woff2')
+	font-weight: 300 800
+	font-style: normal
+	font-display: swap
+
+@font-face
+	font-family: "Atkinson Hyperlegible Next"
+	src: url('/fonts/ahn-i.woff2') format ('woff2')
+	font-weight: 300 800
+	font-style: italic
+	font-display: swap
+
+@font-face
+	font-family: "Atkinson Hyperlegible Mono"
+	src: url('/fonts/ahm.woff2') format ('woff2')
+	font-weight: 300 800
+	font-style: normal
+	font-display: swap
+
+@font-face
+	font-family: "Atkinson Hyperlegible Mono"
+	src: url('/fonts/ahm-i.woff2') format ('woff2')
+	font-weight: 300 800
+	font-style: italic
+	font-display: swap
+
 :root
-  --ground: #161719
-  --surface: #1e2023
-  --sunk: #101113
-  --rule: #2d2f33
-  --ink: #e9eaec
-  --ink-2: #b4b7bb
-  --muted: #8b8e93
-  --signal: #e4703a
-  --ok: #6fbf73
-  --bad: #e2685f
-  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif
-  color-scheme: dark
+	--ground: #171717
+	--surface: #2e2f2f
+	--sunk: #0d0d0d
+	--rule: #2f2f31
+	--ink: #fcfdff
+	--ink-2: #c7c7c8
+	--muted: #9b9c9d
+	--signal: #20b03f
+	--ok: #32cb3a
+	--bad: #317ec2
+	--mono: "Atkinson Hyperlegible Mono", monospace
+	--sans: "Atkinson Hyperlegible Next", sans-serif
+	--text-xs: 0.625rem
+	--text-sm: 0.75rem
+	--text-md: 0.875rem
+	--text-bs: 1rem
+	--text-lg: 1.2rem
+	--text-xl: 1.4rem
+	--space1: 1px
+	--space2: 2px
+	--space3: 3px
+	--space4: 4px
+	--space5: 8px
+	--space6: 16px
+	--space7: 32px
+	--space8: 64px
+
+.color-picker
+	// Dynamic inline variables set per selection
+	--h: 0
+	--c: #ffffff
+
+$ground: #171717
+$surface: #2e2f2f
+$sunk: #0d0d0d
+$rule: #2f2f31
+$ink: #fcfdff
+$ink-2: #c7c7c8
+$muted: #9b9c9d
+$signal: #20b03f
+$ok: #32cb3a
+$bad: #317ec2
+$mono: "Atkinson Hyperlegible Mono", monospace
+$sans: "Atkinson Hyperlegible Next", sans-serif
+
+.mock
+	// Base editor syntax tokens
+	--m-bg: inherit
+	--m-fg: inherit
+	--m-comment: inherit
+	--m-key: inherit
+	--m-str: inherit
+	--m-num: inherit
+	--m-fn: inherit
+	--m-type: inherit
+	--m-op: inherit
+	--m-prop: inherit
+	--m-punct: inherit
+	--m-accent: inherit
+	--m-sel: inherit
+
+	// Workbench chrome surfaces & borders
+	--m-side-bg: inherit
+	--m-side-fg: inherit
+	--m-side-border: inherit
+	--m-side-title: inherit
+	--m-row-bg: inherit
+	--m-row-fg: inherit
+	--m-tab-strip: inherit
+	--m-tab-abg: inherit
+	--m-tab-afg: inherit
+	--m-tab-ibg: inherit
+	--m-tab-ifg: inherit
+	--m-tab-border: inherit
+	--m-tab-top: inherit
+	--m-status-bg: inherit
+	--m-status-fg: inherit
+	--m-gutter: inherit
+	--m-gutter-on: inherit
 
 *
-  box-sizing: border-box
+	box-sizing: border-box
 
 html, body, #app
-  height: 100%
+	height: 100%
+	box-sizing: border-box
 
 body
-  margin: 0
-  background: var(--ground)
-  color: var(--ink)
-  font: 14px/1.5 var(--sans)
-  overflow: hidden
-  -webkit-font-smoothing: antialiased
+	margin: 0
+	background: var(--ground)
+	color: var(--ink)
+	font: var(--text-md)/1.5 var(--sans)
+	overflow: hidden
+	-webkit-font-smoothing: antialiased
 
 button, input, select, textarea
-  font: inherit
-  color: inherit
+	font: inherit
+	color: inherit
 
 // shared control surfaces
 .btn
-  appearance: none
-  background: transparent
-  border: 1px solid var(--rule)
-  border-radius: 3px
-  padding: 7px 12px
-  cursor: pointer
-  font-family: var(--mono)
-  font-size: 11px
-  letter-spacing: .06em
-  text-transform: uppercase
-  color: var(--ink-2)
-  white-space: nowrap
-  &:hover:not(:disabled)
-    color: var(--ink)
-    border-color: var(--muted)
-  &:disabled
-    opacity: .4
-    cursor: default
-  &.primary
-    background: var(--signal)
-    border-color: var(--signal)
-    color: #fff
-    &:hover:not(:disabled)
-      filter: brightness(1.1)
+	appearance: none
+	background: transparent
+	border: 1px solid var(--rule)
+	border-radius: 3px
+	padding: 7px 12px
+	cursor: pointer
+	font-family: var(--mono)
+	font-size: var(--text-sm)
+	letter-spacing: .06em
+	text-transform: uppercase
+	color: var(--ink-2)
+	white-space: nowrap
+	&:hover:not(:disabled)
+		color: var(--ink)
+		border-color: var(--muted)
+	&:disabled
+		opacity: .4
+		cursor: default
+	&.primary
+		background: var(--signal)
+		border-color: var(--signal)
+		color: #fff
+	&:hover:not(:disabled)
+		filter: brightness(1.1)
 
 .sec
-  font-size: 11px
-  font-family: var(--mono)
-  letter-spacing: .14em
-  text-transform: uppercase
-  color: var(--muted)
-  margin: 26px 0 12px
-  padding-bottom: 8px
-  border-bottom: 1px solid var(--rule)
+	font-size: var(--text-sm)
+	font-family: var(--mono)
+	letter-spacing: .14em
+	text-transform: uppercase
+	color: var(--muted)
+	margin: 26px 0 12px
+	padding-bottom: 8px
+	border-bottom: 1px solid var(--rule)
 
 .hint
-  color: var(--muted)
-  font-size: 12px
-  margin: -4px 0 14px
-  max-width: 78ch
+	color: var(--muted)
+	font-size: var(--text-sm)
+	margin: -4px 0 14px
+	max-width: 78ch
 
 // role + workbench tables share one grid
 table.roles
-  width: 100%
-  border-collapse: collapse
-  th
-    font-family: var(--mono)
-    font-size: 10px
-    letter-spacing: .1em
-    text-transform: uppercase
-    color: var(--muted)
-    text-align: left
-    padding: 0 10px 8px
-    font-weight: 400
-  td
-    padding: 3px 10px
-    border-top: 1px solid #ffffff0d
-  td.rl
-    font-family: var(--mono)
-    font-size: 11.5px
-    color: var(--ink-2)
-    width: 150px
-    small
-      display: block
-      color: var(--muted)
-      font-size: 10px
-      font-family: var(--sans)
-      letter-spacing: 0
-    code
-      display: block
-      font-family: var(--mono)
-      font-size: 9.5px
-      color: var(--muted)
+	width: 100%
+	border-collapse: collapse
+	th
+		font-family: var(--mono)
+		font-size: var(--text-xs)
+		letter-spacing: .1em
+		text-transform: uppercase
+		color: var(--muted)
+		text-align: left
+		padding: 0 10px 8px
+		font-weight: 400
+	td
+		padding: 3px 10px
+		border-top: 1px solid #ffffff0d
+	td.rl
+		font-family: var(--mono)
+		font-size: var(--text-sm)
+		color: var(--ink-2)
+		width: 150px
+	small
+		display: block
+		color: var(--muted)
+		font-size: var(--text-xs)
+		font-family: var(--sans)
+		letter-spacing: 0
+	code
+		display: block
+		font-family: var(--mono)
+		font-size: var(--text-xs)
+		color: var(--muted)
 
 .wbgrp
-  font-family: var(--mono)
-  font-size: 10px
-  letter-spacing: .12em
-  text-transform: uppercase
-  color: var(--signal)
-  padding: 16px 10px 6px
+	font-family: var(--mono)
+	font-size: var(--text-xs)
+	letter-spacing: .12em
+	text-transform: uppercase
+	color: var(--signal)
+	padding: 16px 10px 6px

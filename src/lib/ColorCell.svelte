@@ -86,7 +86,7 @@ input[type=text]
   border-radius: 3px
   padding: 5px 7px
   font-family: var(--mono)
-  font-size: 11.5px
+  font-size: var(--text-sm)
   text-transform: uppercase
   &:focus
     outline: none
@@ -100,7 +100,7 @@ input[type=text]
 
 .ctr
   font-family: var(--mono)
-  font-size: 10px
+  font-size: var(--text-xs)
   color: var(--muted)
   font-variant-numeric: tabular-nums
   min-width: 52px
@@ -111,7 +111,7 @@ input[type=text]
   border: 0
   color: var(--muted)
   cursor: pointer
-  font-size: 15px
+  font-size: var(--text-md)
   line-height: 1
   padding: 0 4px
   visibility: hidden

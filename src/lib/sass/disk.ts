@@ -7,7 +7,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { say } from '../store.svelte.js'
 import { sassToCssFile, cssToSass } from './convert'
 import { errMsg } from './util'
-import { sassy } from './state.svelte'
+import { sassy } from './state.svelte.js'
 import type { Src, WriteItem, WriteReport } from './types'
 
 export async function runOnDisk(): Promise<void> {

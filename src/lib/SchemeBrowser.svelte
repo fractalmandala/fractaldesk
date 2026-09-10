@@ -247,13 +247,13 @@ aside
     border: 1px solid var(--rule)
     border-radius: 3px
     padding: 7px 9px
-    font-size: 13px
+    font-size: var(--text-md)
     &:focus
       outline: none
       border-color: var(--signal)
   .tally
     font-family: var(--mono)
-    font-size: 10px
+    font-size: var(--text-xs)
     color: var(--muted)
 
 .chips
@@ -269,7 +269,7 @@ aside
   color: var(--muted)
   cursor: pointer
   font-family: var(--mono)
-  font-size: 10px
+  font-size: var(--text-xs)
   letter-spacing: .06em
   text-transform: uppercase
   padding: 4px 8px
@@ -306,13 +306,13 @@ aside
     border-left-color: var(--signal)
   .nm
     flex: 1
-    font-size: 12.5px
+    font-size: var(--text-sm)
     white-space: nowrap
     overflow: hidden
     text-overflow: ellipsis
   .vr
     font-family: var(--mono)
-    font-size: 9.5px
+    font-size: var(--text-xs)
     color: var(--muted)
     text-transform: uppercase
 
@@ -339,10 +339,10 @@ main
   flex-wrap: wrap
   h2
     margin: 0
-    font-size: 20px
+    font-size: var(--text-lg)
   .by
     margin: 4px 0 0
-    font-size: 12px
+    font-size: var(--text-sm)
     color: var(--muted)
     font-family: var(--mono)
     max-width: 70ch
@@ -370,16 +370,16 @@ main
       border: 1px solid #ffffff1a
     b
       font-family: var(--mono)
-      font-size: 9.5px
+      font-size: var(--text-xs)
       color: var(--ink-2)
       font-weight: 400
     span
       font-family: var(--mono)
-      font-size: 9.5px
+      font-size: var(--text-xs)
       color: var(--muted)
 
 .sec
-  font-size: 11px
+  font-size: var(--text-sm)
   font-family: var(--mono)
   letter-spacing: .14em
   text-transform: uppercase
@@ -407,14 +407,14 @@ main
   margin-bottom: 7px
   .t
     font-family: var(--mono)
-    font-size: 11px
+    font-size: var(--text-sm)
     letter-spacing: .1em
     text-transform: uppercase
     color: var(--ink-2)
   .cr
     flex: 1
     font-family: var(--mono)
-    font-size: 10.5px
+    font-size: var(--text-xs)
     color: var(--muted)
     white-space: nowrap
     overflow: hidden
@@ -431,7 +431,7 @@ main
     border: 0
     color: var(--muted)
     cursor: pointer
-    font-size: 15px
+    font-size: var(--text-md)
     &:hover
       color: var(--signal)
 
@@ -441,7 +441,7 @@ main
   padding: 40px 20px
   text-align: center
   color: var(--muted)
-  font-size: 12.5px
+  font-size: var(--text-sm)
 
 .tabs
   display: flex
@@ -450,7 +450,7 @@ main
 
 td.from
   font-family: var(--mono)
-  font-size: 10.5px
+  font-size: var(--text-xs)
   color: var(--muted)
   width: 130px
 
@@ -469,7 +469,7 @@ td.from
   gap: 5px
   span
     font-family: var(--mono)
-    font-size: 10px
+    font-size: var(--text-xs)
     letter-spacing: .1em
     text-transform: uppercase
     color: var(--muted)
@@ -478,7 +478,7 @@ td.from
     border: 1px solid var(--rule)
     border-radius: 3px
     padding: 7px 9px
-    font-size: 13px
+    font-size: var(--text-md)
     min-width: 220px
     &:focus
       outline: none
@@ -486,12 +486,12 @@ td.from
 
 .none
   color: var(--muted)
-  font-size: 12.5px
+  font-size: var(--text-sm)
   padding: 14px
   &.big
     padding: 60px 0
     text-align: center
-    font-size: 14px
+    font-size: var(--text-md)
   code
     font-family: var(--mono)
     color: var(--ink-2)

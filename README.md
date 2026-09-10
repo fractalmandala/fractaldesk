@@ -60,8 +60,13 @@ from the bundled `palettes.json` and asserts each file is byte-for-byte identica
 
 ```
 src/
-  App.svelte              window chrome, actions, layout
+  app.html                SvelteKit document shell
   app.sass                global tokens and shared control styles
+  app.d.ts                SvelteKit app types
+  routes/
+    +layout.svelte        imports app.sass, renders the page
+    +layout.js            prerendered, no SSR (Tauri serves one static bundle)
+    +page.svelte          window chrome, actions, layout
   lib/
     store.svelte.js       $state store; `eff()` resolves override -> derived
     Mock.svelte           the editor preview

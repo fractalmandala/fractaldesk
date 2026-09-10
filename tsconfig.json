@@ -1,7 +1,5 @@
 {
-  // Additive TypeScript config. The app is built by Vite (which transpiles .ts
-  // and <script lang="ts"> on its own); this file exists so editors and an
-  // optional `svelte-check` get types. Existing .js files keep working untouched.
+  "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
@@ -17,5 +15,5 @@
     "resolveJsonModule": true,
     "types": ["svelte", "vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte"]
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
 }

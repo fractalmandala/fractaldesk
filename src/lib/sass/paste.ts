@@ -5,7 +5,7 @@
 import { say } from '../store.svelte.js'
 import { sassToCss, cssToSass } from './convert'
 import { errMsg } from './util'
-import { sassy } from './state.svelte'
+import { sassy } from './state.svelte.js'
 
 // The paste box has no folder context, so Dart Sass can't resolve `@use`/@import`
 // of other files. Point the user at the On disk button, which loads siblings.

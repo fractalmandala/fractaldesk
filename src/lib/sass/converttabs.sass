@@ -1,0 +1,58 @@
+.tree
+	display: flex
+	flex-direction: column
+	gap: 1px
+	overflow-y: auto
+	flex: 1
+	min-height: 0
+	padding: 8px
+
+.node
+	display: flex
+	align-items: center
+	gap: 7px
+	width: 100%
+	text-align: left
+	background: none
+	border: 0
+	border-radius: 3px
+	padding: 5px 8px
+	cursor: pointer
+	font-family: var(--mono)
+	font-size: var(--text-sm)
+	color: var(--ink-2)
+	&:hover
+		background: #ffffff0d
+	&[aria-current='true']
+		background: var(--surface)
+		color: var(--signal)
+		font-weight: 600
+
+.glyph
+	color: var(--muted)
+	font-size: var(--text-xs)
+	width: 9px
+	flex: none
+
+.nm
+	overflow: hidden
+	text-overflow: ellipsis
+	white-space: nowrap
+
+.count
+	margin-left: auto
+	font-size: var(--text-xs)
+	color: var(--muted)
+	font-variant-numeric: tabular-nums
+
+.acts
+	display: flex
+	gap: 6px
+	padding: 10px
+	border-top: 1px solid var(--rule)
+
+.btn
+	flex: 1
+	padding: 6px 4px
+	font-size: var(--text-xs)
+	letter-spacing: .04em

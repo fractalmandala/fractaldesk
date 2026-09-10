@@ -5,3 +5,8 @@ app-icon.png
 
 # macOS
 .DS_Store
+
+docs/audits/
+docs/docs/
+docs/raw/
+docs/reports/

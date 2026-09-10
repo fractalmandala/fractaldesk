@@ -1,5 +1,5 @@
 // Shared Sassy state. The controls (direction + Convert + On disk) live in the
-// app header (App.svelte); the panes in ConvertSurface.svelte bind to this so a
+// app header (+page.svelte); the panes in ConvertSurface.svelte bind to this so a
 // header button can drive the paste conversion. `busy`/`report` belong to the
 // On disk action but are shown in the surface.
 

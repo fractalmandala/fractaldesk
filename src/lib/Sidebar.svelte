@@ -47,7 +47,7 @@ aside
 .fam
   padding: 14px 14px 4px
   font-family: var(--mono)
-  font-size: 10px
+  font-size: var(--text-xs)
   letter-spacing: .14em
   text-transform: uppercase
   color: var(--signal)
@@ -81,7 +81,7 @@ aside
 
 .nm
   flex: 1
-  font-size: 13px
+  font-size: var(--text-md)
   white-space: nowrap
   overflow: hidden
   text-overflow: ellipsis
@@ -95,6 +95,6 @@ aside
   .btn
     flex: 1
     padding: 6px 4px
-    font-size: 10px
+    font-size: var(--text-xs)
     letter-spacing: .04em
 </style>

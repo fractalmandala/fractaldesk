@@ -224,7 +224,7 @@
   border-radius: 4px
   padding: 5px 7px
   font-family: var(--mono)
-  font-size: 12px
+  font-size: var(--text-sm)
   text-transform: uppercase
   &:focus
     outline: none
@@ -238,7 +238,7 @@
   background: var(--sunk)
   color: var(--ink-2)
   cursor: pointer
-  font-size: 14px
+  font-size: var(--text-md)
   line-height: 1
   &:hover
     color: var(--ink)
@@ -249,7 +249,7 @@
   justify-content: space-between
   gap: 8px
   font-family: var(--mono)
-  font-size: 10px
+  font-size: var(--text-xs)
   color: var(--muted)
   font-variant-numeric: tabular-nums
   .cr
@@ -259,7 +259,7 @@
 
 .label
   font-family: var(--mono)
-  font-size: 9px
+  font-size: var(--text-xs)
   letter-spacing: .12em
   text-transform: uppercase
   color: var(--muted)

@@ -51,64 +51,64 @@
 </div>
 
 <div class="acts">
-  <button class="btn" onclick={() => addCommand(null)}>+ Command</button>
-  <button class="btn" onclick={() => addCommand(sel === 'root' ? null : sel)}>+ Sub</button>
-  <button class="btn" disabled={sel === 'root'} onclick={remove}>Delete</button>
+	<button class="btn" onclick={() => addCommand(null)}>+ Command</button>
+	<button class="btn" onclick={() => addCommand(sel === 'root' ? null : sel)}>+ Sub</button>
+	<button class="btn" disabled={sel === 'root'} onclick={remove}>Delete</button>
 </div>
 
 <style lang="sass">
 .tree
-  display: flex
-  flex-direction: column
-  gap: 1px
-  overflow-y: auto
-  flex: 1
-  min-height: 0
-  padding: 8px
+	display: flex
+	flex-direction: column
+	gap: 1px
+	overflow-y: auto
+	flex: 1
+	min-height: 0
+	padding: 8px
 
 .node
-  display: flex
-  align-items: center
-  gap: 7px
-  width: 100%
-  text-align: left
-  background: none
-  border: 0
-  border-radius: 3px
-  padding: 5px 8px
-  cursor: pointer
-  font-family: var(--mono)
-  font-size: 12px
-  color: var(--ink-2)
-  &:hover
-    background: #ffffff0d
-  &[aria-current='true']
-    background: var(--surface)
-    color: var(--signal)
-    font-weight: 600
-  .glyph
-    color: var(--muted)
-    font-size: 10px
-    width: 9px
-    flex: none
-  .nm
-    overflow: hidden
-    text-overflow: ellipsis
-    white-space: nowrap
-  .count
-    margin-left: auto
-    font-size: 10px
-    color: var(--muted)
-    font-variant-numeric: tabular-nums
+	display: flex
+	align-items: center
+	gap: 7px
+	width: 100%
+	text-align: left
+	background: none
+	border: 0
+	border-radius: 3px
+	padding: 5px 8px
+	cursor: pointer
+	font-family: var(--mono)
+	font-size: var(--text-sm)
+	color: var(--ink-2)
+	&:hover
+		background: #ffffff0d
+	&[aria-current='true']
+		background: var(--surface)
+		color: var(--signal)
+		font-weight: 600
+	.glyph
+		color: var(--muted)
+		font-size: var(--text-xs)
+		width: 9px
+		flex: none
+	.nm
+		overflow: hidden
+		text-overflow: ellipsis
+		white-space: nowrap
+	.count
+		margin-left: auto
+		font-size: var(--text-xs)
+		color: var(--muted)
+		font-variant-numeric: tabular-nums
 
 .acts
-  display: flex
-  gap: 6px
-  padding: 10px
-  border-top: 1px solid var(--rule)
-  .btn
-    flex: 1
-    padding: 6px 4px
-    font-size: 10px
-    letter-spacing: .04em
+	display: flex
+	gap: 6px
+	padding: 10px
+	border-top: 1px solid var(--rule)
+	.btn
+		flex: 1
+		padding: 6px 4px
+		font-size: var(--text-xs)
+		letter-spacing: .04em
 </style>

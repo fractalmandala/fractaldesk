@@ -117,152 +117,152 @@
 
 <style lang="sass">
 .head
-  padding: 9px 14px
-  border-bottom: 1px solid var(--rule)
-  background: var(--sunk)
+	padding: 9px 14px
+	border-bottom: 1px solid var(--rule)
+	background: var(--sunk)
 
 .eyebrow
-  font-size: 10px
-  letter-spacing: .13em
-  text-transform: uppercase
-  color: var(--muted)
-  font-weight: 600
-  flex: 1
+	font-size: var(--text-xs)
+	letter-spacing: .13em
+	text-transform: uppercase
+	color: var(--muted)
+	font-weight: 600
+	flex: 1
 
 .body
-  padding: 14px
-  overflow-y: auto
-  flex: 1
-  min-height: 0
+	padding: 14px
+	overflow-y: auto
+	flex: 1
+	min-height: 0
 
 .fields
-  display: grid
-  grid-template-columns: repeat(2, minmax(0, 1fr))
-  gap: 12px
+	display: grid
+	grid-template-columns: repeat(2, minmax(0, 1fr))
+	gap: 12px
 
 .f
-  display: flex
-  flex-direction: column
-  gap: 4px
-  min-width: 0
-  &.wide
-    grid-column: 1 / -1
-  span
-    font-size: 10px
-    letter-spacing: .11em
-    text-transform: uppercase
-    color: var(--muted)
-    font-weight: 600
-  input, select, textarea
-    background: var(--sunk)
-    border: 1px solid var(--rule)
-    border-radius: 3px
-    padding: 5px 8px
-    font-size: 13px
-    width: 100%
-    &:focus
-      outline: none
-      border-color: var(--signal)
-  textarea
-    resize: vertical
-    min-height: 46px
-    font: 13px/1.45 var(--sans)
+	display: flex
+	flex-direction: column
+	gap: 4px
+	min-width: 0
+	&.wide
+		grid-column: 1 / -1
+	span
+		font-size: var(--text-xs)
+		letter-spacing: .11em
+		text-transform: uppercase
+		color: var(--muted)
+		font-weight: 600
+	input, select, textarea
+		background: var(--sunk)
+		border: 1px solid var(--rule)
+		border-radius: 3px
+		padding: 5px 8px
+		font-size: var(--text-md)
+		width: 100%
+		&:focus
+			outline: none
+			border-color: var(--signal)
+	textarea
+		resize: vertical
+		min-height: 46px
+		font: var(--text-md)/1.45 var(--sans)
 
 .sect
-  margin-top: 24px
+	margin-top: 24px
 
 .secthead
-  display: flex
-  align-items: center
-  gap: 10px
-  padding-bottom: 7px
-  border-bottom: 1px solid var(--rule)
-  .btn
-    padding: 4px 9px
-    font-size: 10px
+	display: flex
+	align-items: center
+	gap: 10px
+	padding-bottom: 7px
+	border-bottom: 1px solid var(--rule)
+	.btn
+		padding: 4px 9px
+		font-size: var(--text-xs)
 
 .hint
-  font-size: 12px
-  color: var(--muted)
-  margin: 9px 0 0
-  font-style: italic
+	font-size: var(--text-sm)
+	color: var(--muted)
+	margin: 9px 0 0
+	font-style: italic
 
 .row
-  padding: 10px 0
-  border-bottom: 1px solid #ffffff0d
-  display: flex
-  flex-direction: column
-  gap: 6px
-  position: relative
-  &:last-child
-    border-bottom: 0
+	padding: 10px 0
+	border-bottom: 1px solid #ffffff0d
+	display: flex
+	flex-direction: column
+	gap: 6px
+	position: relative
+	&:last-child
+		border-bottom: 0
 
 .line
-  display: flex
-  gap: 7px
-  align-items: center
-  flex-wrap: wrap
-  input, select
-    background: var(--sunk)
-    border: 1px solid var(--rule)
-    border-radius: 3px
-    padding: 4px 7px
-    font-size: 12px
-    &:focus
-      outline: none
-      border-color: var(--signal)
+	display: flex
+	gap: 7px
+	align-items: center
+	flex-wrap: wrap
+	input, select
+		background: var(--sunk)
+		border: 1px solid var(--rule)
+		border-radius: 3px
+		padding: 4px 7px
+		font-size: var(--text-sm)
+		&:focus
+			outline: none
+			border-color: var(--signal)
 
 .mono
-  font-family: var(--mono)
+	font-family: var(--mono)
 
 .grow
-  flex: 1 1 90px
-  min-width: 64px
+	flex: 1 1 90px
+	min-width: 64px
 
 .w-xs
-  width: 46px
+	width: 46px
 .w-s
-  width: 72px
+	width: 72px
 .w-m
-  width: 104px
+	width: 104px
 
 .desc
-  width: 100%
-  background: var(--sunk)
-  border: 1px solid var(--rule)
-  border-radius: 3px
-  padding: 4px 7px
-  font-size: 12px
-  color: var(--ink-2)
-  &:focus
-    outline: none
-    border-color: var(--signal)
+	width: 100%
+	background: var(--sunk)
+	border: 1px solid var(--rule)
+	border-radius: 3px
+	padding: 4px 7px
+	font-size: var(--text-sm)
+	color: var(--ink-2)
+	&:focus
+		outline: none
+		border-color: var(--signal)
 
 .preview
-  font-family: var(--mono)
-  font-size: 10px
-  color: var(--muted)
+	font-family: var(--mono)
+	font-size: var(--text-xs)
+	color: var(--muted)
 
 .tag
-  font-family: var(--mono)
-  font-size: 11px
-  padding: 1px 6px
-  border-radius: 999px
-  background: #ffffff12
-  color: var(--muted)
-  &.req
-    background: #e4703a26
-    color: var(--signal)
+	font-family: var(--mono)
+	font-size: var(--text-sm)
+	padding: 1px 6px
+	border-radius: 999px
+	background: #ffffff12
+	color: var(--muted)
+	&.req
+		background: #e4703a26
+		color: var(--signal)
 
 .kill
-  background: none
-  border: 0
-  margin-left: auto
-  color: var(--muted)
-  cursor: pointer
-  padding: 2px 5px
-  font-size: 14px
-  border-radius: 3px
-  &:hover
-    color: var(--bad)
+	background: none
+	border: 0
+	margin-left: auto
+	color: var(--muted)
+	cursor: pointer
+	padding: 2px 5px
+	font-size: var(--text-md)
+	border-radius: 3px
+	&:hover
+		color: var(--bad)
 </style>

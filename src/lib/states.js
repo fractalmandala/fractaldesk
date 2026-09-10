@@ -5,8 +5,9 @@
 // To add a new surface:
 //   1. Add an entry here — `id` is what `app.view` becomes, `label` is the
 //      button text. A button for it appears in the header automatically.
-//   2. Add a matching `{:else if app.view === '<id>'}` clause in App.svelte
-//      that renders whatever the surface should show (usually one component).
+//   2. Add a matching `{:else if app.view === '<id>'}` clause in
+//      src/routes/+page.svelte that renders whatever the surface should show
+//      (usually one component).
 //
 // Fields:
 //   id     unique key stored in `app.view`

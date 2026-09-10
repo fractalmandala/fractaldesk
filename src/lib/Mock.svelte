@@ -62,8 +62,7 @@
 <style lang="sass">
 .mock
   font-family: var(--mono)
-  font-size: 11.6px
-  line-height: 1.7
+  font-size: var(--text-sm)
   display: flex
   border: 1px solid var(--rule)
   border-radius: 4px
@@ -76,7 +75,7 @@
   border-right: 1px solid var(--m-side-border)
   padding: 8px 0
   .ttl
-    font-size: 9px
+    font-size: var(--text-xs)
     letter-spacing: .12em
     text-transform: uppercase
     color: var(--m-side-title)
@@ -91,7 +90,7 @@
     color: var(--m-side-fg)
     opacity: .78
     font-family: var(--mono)
-    font-size: 10.5px
+    font-size: var(--text-xs)
     cursor: pointer
     &:hover
       opacity: 1
@@ -114,7 +113,7 @@
   button
     padding: 6px 12px
     font-family: var(--mono)
-    font-size: 10.5px
+    font-size: var(--text-xs)
     border: 0
     cursor: pointer
     background: var(--m-tab-ibg)
@@ -154,7 +153,7 @@
   padding: 4px 12px
   background: var(--m-status-bg)
   border-top: 1px solid var(--m-tab-border)
-  font-size: 10px
+  font-size: var(--text-xs)
   color: var(--m-status-fg)
   .nm
     color: var(--m-accent)
