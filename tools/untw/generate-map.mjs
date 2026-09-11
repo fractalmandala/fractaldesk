@@ -1,7 +1,7 @@
 // Map generator for the untw offline engine. NOT part of the app build — run it
 // manually in an environment that has tailwindcss, tw-animate-css and postcss
 // installed (for example: NODE_PATH=/tmp/twdecode-probe/node_modules node
-// src/lib/untw/tools/generate-map.mjs <out-resolution-map.json>).
+// tools/untw/generate-map.mjs <out-resolution-map.json>).
 //
 // It compiles a programmatically enumerated candidate set with the REAL
 // Tailwind v4 compiler (plus tw-animate-css and the shadcn-style dark custom

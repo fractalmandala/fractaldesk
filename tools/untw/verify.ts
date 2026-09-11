@@ -4,8 +4,8 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { resolveToken } from '../../src/lib/untw/resolve'
-import { parseTheme } from '../../src/lib/untw/theme'
+import { resolveToken } from '../../src/lib/surfaces/untw/resolve'
+import { parseTheme } from '../../src/lib/surfaces/untw/theme'
 
 const dir = dirname(fileURLToPath(import.meta.url))
 const golden = JSON.parse(readFileSync(join(dir, 'golden-dropdown.json'), 'utf8')) as Record<string, string[]>

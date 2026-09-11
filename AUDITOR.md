@@ -47,4 +47,10 @@ one word verdict - 'completed' | 'no'
 
 ## Index
 
+- [Surface Architecture Gate 0](docs/audits/surface-architecture-gate0.md) — Audit of Gate 0 typed contract, registry, shell-only store, bus, and registry-driven shell.
 - [Untw Tailwind Deconstruction Surface](docs/audits/untw-tailwind-deconstruct.md) — Re-audit of untw state delivery confirming resolution of all audit findings, UI completeness, and clean tests.
+- [Surface Architecture Gate 1](docs/audits/surface-architecture-gate1.md) — Audit of Gate 1 argv surface migration to surfaces/argv/ with .ts helpers and P24 collision fix.
+- [Surface Architecture Gate 2](docs/audits/surface-architecture-gate2.md) — Audit of Gate 2 themes migration to surfaces/themes/ with fullWhileLoading contract extension, state ownership transfer, and all persistence surface-owned.
+- [Surface Architecture Gate 3](docs/audits/surface-architecture-gate3.md) — Audit of Gate 3 schemes migration to surfaces/schemes/ and the Schemes→Themes import rerouted through the themes:import-pair bus event, with both flagged judgment calls evaluated.
+- [Surface Architecture Gate 4](docs/audits/surface-architecture-gate4.md) — Audit of Gate 4 sassy migration to surfaces/sassy/ plus the five Gate 3 cleanups (palette-meta projection, events contract, HMR guard, registry spreads, states.ts removal), with both flagged judgment calls evaluated.
+- [Surface Architecture Gate 5](docs/audits/surface-architecture-gate5.md) — Final audit of the rollout: untw migrated to surfaces/untw/ with a byte-identical engine and a re-run 78/78 golden replay, AGENTS.md rewritten to the registry+folder contract (P29), color/samples converted to .ts, and both Gate 4 cleanups verified; closes Gates 0–5.

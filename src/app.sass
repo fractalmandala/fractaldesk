@@ -1,29 +1,50 @@
 @font-face
-	font-family: "Atkinson Hyperlegible Next"
-	src: url('/fonts/ahn.woff2') format ('woff2')
-	font-weight: 300 800
+	font-family: 'Instrument Sans'
+	src: url('../fonts/ins-regular.woff2') format('woff2')
+	font-weight: 400
 	font-style: normal
 	font-display: swap
 
 @font-face
-	font-family: "Atkinson Hyperlegible Next"
-	src: url('/fonts/ahn-i.woff2') format ('woff2')
-	font-weight: 300 800
+	font-family: 'Instrument Sans'
+	src: url('../fonts/ins-italic.woff2') format('woff2')
+	font-weight: 400
 	font-style: italic
 	font-display: swap
 
 @font-face
-	font-family: "Atkinson Hyperlegible Mono"
-	src: url('/fonts/ahm.woff2') format ('woff2')
-	font-weight: 300 800
+	font-family: 'Instrument Sans'
+	src: url('../fonts/ins-600.woff2') format('woff2')
+	font-weight: 600
 	font-style: normal
 	font-display: swap
 
 @font-face
-	font-family: "Atkinson Hyperlegible Mono"
-	src: url('/fonts/ahm-i.woff2') format ('woff2')
-	font-weight: 300 800
+	font-family: 'Instrument Sans'
+	src: url('../fonts/ins-italic-600.woff2') format('woff2')
+	font-weight: 600
 	font-style: italic
+	font-display: swap
+
+@font-face
+	font-family: 'Instrument Sans'
+	src: url('../fonts/ins-italic-700.woff2') format('woff2')
+	font-weight: 700
+	font-style: normal
+	font-display: swap
+
+@font-face
+	font-family: 'Instrument Sans'
+	src: url('../fonts/ins-700.woff2') format('woff2')
+	font-weight: 700
+	font-style: italic
+	font-display: swap
+
+@font-face
+	font-family: 'Monaspace Neon'
+	src: url('../fonts/monaspaceneon.woff2') format('woff2')
+	font-weight: 300 700
+	font-style: normal
 	font-display: swap
 
 :root
@@ -37,8 +58,8 @@
 	--signal: #20b03f
 	--ok: #32cb3a
 	--bad: #317ec2
-	--mono: "Atkinson Hyperlegible Mono", monospace
-	--sans: "Atkinson Hyperlegible Next", sans-serif
+	--mono: "Monaspace Neon", monospace
+	--sans: "Instrument Sans", sans-serif
 	--text-xs: 0.625rem
 	--text-sm: 0.75rem
 	--text-md: 0.875rem
@@ -121,37 +142,20 @@ body
 	font: var(--text-md)/1.5 var(--sans)
 	overflow: hidden
 	-webkit-font-smoothing: antialiased
+	font-optical-sizing: auto
+	-webkit-text-size-adjust: 100%
+
+p
+	text-wrap: pretty
+
+p, h6, h5, h4, h3, h2, h1
+	margin: 0
 
 button, input, select, textarea
 	font: inherit
 	color: inherit
 
 // shared control surfaces
-.btn
-	appearance: none
-	background: transparent
-	border: 1px solid var(--rule)
-	border-radius: 3px
-	padding: 7px 12px
-	cursor: pointer
-	font-family: var(--mono)
-	font-size: var(--text-sm)
-	letter-spacing: .06em
-	text-transform: uppercase
-	color: var(--ink-2)
-	white-space: nowrap
-	&:hover:not(:disabled)
-		color: var(--ink)
-		border-color: var(--muted)
-	&:disabled
-		opacity: .4
-		cursor: default
-	&.primary
-		background: var(--signal)
-		border-color: var(--signal)
-		color: #fff
-	&:hover:not(:disabled)
-		filter: brightness(1.1)
 
 .sec
 	font-size: var(--text-sm)
@@ -205,7 +209,32 @@ table.roles
 .wbgrp
 	font-family: var(--mono)
 	font-size: var(--text-xs)
-	letter-spacing: .12em
+	letter-spacing: 0.12em
 	text-transform: uppercase
 	color: var(--signal)
 	padding: 16px 10px 6px
+.btn
+	appearance: none
+	background: transparent
+	border: 1px solid var(--rule)
+	border-radius: 3px
+	padding: 7px 12px
+	cursor: pointer
+	font-family: var(--mono)
+	font-size: var(--text-sm)
+	letter-spacing: .06em
+	text-transform: uppercase
+	color: var(--ink-2)
+	white-space: nowrap
+	&:hover:not(:disabled)
+		color: var(--ink)
+		border-color: var(--muted)
+	&:disabled
+		opacity: .4
+		cursor: default
+	&.primary
+		background: var(--signal)
+		border-color: var(--signal)
+		color: #fff
+	&:hover:not(:disabled)
+		filter: brightness(1.1)

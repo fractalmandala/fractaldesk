@@ -3,7 +3,7 @@
   import {
     hexToHsv, hsvToHex, hexToOklch, stepLightness, ratio, grade, isHex, clamp
   } from './color.js'
-  import { recents } from './store.svelte.js'
+  import { recents } from '$lib/recents.svelte.js'
 
   // `anchor` is the trigger element; the panel is fixed-positioned off its rect so
   // it escapes the scroll container's clipping.

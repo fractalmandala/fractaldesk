@@ -106,7 +106,7 @@
     "src": "src/routes/+layout.svelte",
     "isEntry": true,
     "css": [
-      "_app/immutable/assets/_layout.CQ3AmueQ.css"
+      "_app/immutable/assets/_layout.DAz9axfN.css"
     ]
   },
   "src/routes/+page.svelte": {
@@ -118,7 +118,7 @@
       "_index.js"
     ],
     "css": [
-      "_app/immutable/assets/_page.unZHKDXs.css"
+      "_app/immutable/assets/_page.D7PPyU6r.css"
     ]
   },
   "virtual:__sveltekit/env": {

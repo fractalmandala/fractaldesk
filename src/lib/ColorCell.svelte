@@ -1,6 +1,6 @@
 <script>
   import { isHex } from './color.js'
-  import { remember } from './store.svelte.js'
+  import { remember } from '$lib/recents.svelte.js'
   import ColorPicker from './ColorPicker.svelte'
 
   // `value` is what to display; `inherited` marks it as a derived default rather

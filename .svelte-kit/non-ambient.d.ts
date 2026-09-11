@@ -38,6 +38,6 @@ declare module "$app/types" {
 		};
 		Pathname(): "/";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
-		Asset(): "/fonts/ahm-i.woff2" | "/fonts/ahm.woff2" | "/fonts/ahn-i.woff2" | "/fonts/ahn.woff2" | string & {};
+		Asset(): "/.DS_Store" | "/fonts/ahm-i.woff2" | "/fonts/ahm.woff2" | "/fonts/ahn-i.woff2" | "/fonts/ahn.woff2" | "/fonts/ins-600.woff2" | "/fonts/ins-700.woff2" | "/fonts/ins-italic-600.woff2" | "/fonts/ins-italic-700.woff2" | "/fonts/ins-italic.woff2" | "/fonts/ins-regular.woff2" | "/fonts/monaspaceargon.woff2" | "/fonts/monaspaceneon.woff2" | string & {};
 	}
 }

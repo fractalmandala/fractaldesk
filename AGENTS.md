@@ -7,12 +7,15 @@ This app is an on-going personal build of a workbench to organize all sorts of d
 > If working on a new feature/product, use the spec -> implement -> report flow through the skills in `skills` folder `write-specs` and `implement-specs`
 
 > If you are given an auditing task, then you are an Auditor. After reading these instructions, read `AUDITOR.md`
+> If you are told to orchestrate then you are an Orchestrator. Orchestrator runs when user asks for it, for example "orchestrate the next task", or "orchestrate the 4 steps in file", or "I want this done autonomously. After reading these instructions, read `ORCHESTRATOR.md`
+> Unless you are given audit or orchestration, you are a task agent.
+> After every task, always evaluate if README.md, or any docs, need to be update, and maintain them in up-to-date state.
 
 Since it is an ongoing build, things about this repo keep changing. But this structure is maintained:
 
-1. At `src/lib/states.js` we maintain a global states store for the app. The number of states are the number of surfaces or tabs we use in `src/routes/+page.svelte`.
-2. The `src/lib/store.svelte.js` extends this for the App to use.
-3. Each state owns its own complete component. The `+page.svelte` layout uses a global header, and displays a different component depending on state. Tabs in the header allow user to toggle between states.
+1. Surfaces are registered in `src/lib/surfaces/registry.ts` — a typed array of `Surface` entries (see `src/lib/surface.ts` for the contract). The shell (`+page.svelte`) renders the active surface from this registry with no surface-specific imports or conditional chains.
+2. The shell-only global state lives in `src/lib/store.svelte.ts` (view, busy, msg, kind, say). Surface-specific state lives in each surface's own `surfaces/<id>/state.svelte.ts`.
+3. Each surface has a component, an optional toolbar component, and an optional load hook — all declared in its registry entry.
 4. After every task, always evaluate if README.md, or any docs, need to be update, and maintain them in up-to-date state.
 
 These are the essential contents of this document:
@@ -55,11 +58,21 @@ Do not create or new arbitrary new font-sizes.
 If you are creating a new tab or surface in the app, follow these steps:
 > **make sure you first write a spec doc for what you are about to do, and add it to `docs/specs`
 
-1. Create new state in `src/lib/states.js`
-2. Create a new component in `src/lib` as the surface for that state. For example, `ThemesSurface.svelte` is the surface for state.id = "themes".  Build the state's UI here.
-3. In `src/routes/+page.svelte`, import that component.
-4. The div class="conditional" is to be used for displaying the surface's own controls in the header. It is a conditional display, each state has its own. The conditionals begin from `{#if app.view === 'themes'}` and the final is a default `{:else}`. If this new state has conditionals, add a `{:else if app.view === .....newsurfacestate}` clause in this.
-5. Similarly, in the class="shell", add a `{:else if app.view === ....newsurfacestate }` and place the importet surface component there.
+Adding a surface is exactly two steps — this supersedes the old import-and-{:else if} workflow:
+
+1. Create `src/lib/surfaces/<id>/` implementing the surface contract (see `src/lib/surface.ts`):
+	- `index.ts` — exports the `Surface` entry: id, label, `full`, component, optional toolbar, optional load hook.
+	- `Surface.svelte` — the surface body.
+	- `Toolbar.svelte` (optional) — header controls; imports the surface's own `state.svelte.ts`.
+	- `state.svelte.ts` — the surface's `$state` object (object-wrapped) plus its action functions, imported by both body and toolbar.
+2. Add the entry to `src/lib/surfaces/registry.ts` — `{ ...<id>Surface }`.
+
+**No edits to `+page.svelte` — ever.** The shell renders the active surface's body and toolbar from the registry.
+
+- Persistence is the optional `load` hook, invoked the first time the surface activates. A surface without persistence declares none.
+- A `full: false` surface that needs full width while loading implements `fullWhileLoading`.
+- Cross-surface needs go through the event bus (`src/lib/bus.ts`, event contracts in `src/lib/events.ts`) — never by importing another surface's state module, never by widening the shell store (`store.svelte.ts` is shell-only).
+- Shared components/helpers live in `$lib`.
 
 ### Rust, Backend, Tauri
 

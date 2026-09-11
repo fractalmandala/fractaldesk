@@ -1,6 +1,11 @@
 <script>
   import { SAMPLES, FILES } from './samples.js'
-  import { app, eff } from './store.svelte.js'
+  // Shared presentational component: it reads Themes state for the code sample
+  // set and the sample-file picker (themes.file, also switched by the picker),
+  // and is rendered by both the Themes and Schemes surfaces. Temporary
+  // cross-surface dependency — same status as the read-only Themes import in
+  // surfaces/schemes/Surface.svelte.
+  import { themes, eff } from '$lib/surfaces/themes/state.svelte.js'
 
   let { mode, name } = $props()
 
@@ -30,21 +35,21 @@
   const vars = $derived(
     Object.entries(chrome).map(([k, v]) => `--m-${k}:${v}`).join(';')
   )
-  const sample = $derived(SAMPLES[app.file])
-  const lang = $derived(app.file.split('.').pop().toUpperCase())
+  const sample = $derived(SAMPLES[themes.file])
+  const lang = $derived(themes.file.split('.').pop().toUpperCase())
 </script>
 
 <div class="mock" style={vars}>
   <div class="rail">
     <div class="ttl">Explorer</div>
     {#each FILES as f}
-      <button class:on={f === app.file} onclick={() => (app.file = f)}>{f}</button>
+      <button class:on={f === themes.file} onclick={() => (themes.file = f)}>{f}</button>
     {/each}
   </div>
   <div class="main">
     <div class="tabs">
       {#each FILES.slice(0, 2) as f}
-        <button class:on={f === app.file} onclick={() => (app.file = f)}>{f}</button>
+        <button class:on={f === themes.file} onclick={() => (themes.file = f)}>{f}</button>
       {/each}
     </div>
     <div class="code">

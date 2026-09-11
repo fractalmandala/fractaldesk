@@ -66,20 +66,24 @@ src/
   routes/
     +layout.svelte        imports app.sass, renders the page
     +layout.js            prerendered, no SSR (Tauri serves one static bundle)
-    +page.svelte          window chrome, actions, layout
+    +page.svelte          registry-driven shell — chrome only, no surface imports
   lib/
-    store.svelte.js       $state store; `eff()` resolves override -> derived
-    states.js             surface registry (themes, schemes, argv, sassy, untw)
-    Mock.svelte           the editor preview
-    RoleTable.svelte      the 15 core roles
-    WorkbenchTable.svelte the 37 overridable surfaces
+    surface.ts            typed Surface contract (id, layout, component, toolbar, load)
+    store.svelte.ts       shell-only $state: view, busy, msg, kind, say()
+    bus.ts                cross-surface pub/sub; event contracts typed in events.ts
+    events.ts             typed bus event contract (IMPORT_PAIR, ImportPairPayload)
+    palette-meta.ts       shared read-only projection of the themes document meta
+    surfaces/registry.ts  typed surface registry (themes, schemes, argv, sassy, untw)
+    surfaces/themes/      the Themes surface — state, editor, toolbar, tables
+    surfaces/schemes/     the Schemes surface — state, browser, scheme mapping
+    surfaces/argv/        the Argv surface — state, tree editor, toolbar, spec parser
+    surfaces/sassy/       the Sassy surface — state, converter, paste, disk, toolbar
+    Mock.svelte           the editor preview (shared presentational component)
     ColorCell.svelte      picker + hex field + inherit/pin state
-    Sidebar.svelte        theme list
-    samples.js            the four language samples
-    color.js              WCAG luminance and contrast
-    ConvertSurface.svelte sassy paste-conversion surface
-    UntwSurface.svelte    untw tailwind-deconstruction surface
-    untw/                 offline decode engine (extract, variants, resolve, map)
+    samples.ts            the four language samples
+    color.ts              WCAG luminance and contrast
+    surfaces/untw/        the Untw surface — offline decode engine (extract,
+                          variants, resolve, map), toolbar, golden-replay tooling in tools/untw/
 src-tauri/src/lib.rs      commands: load, save, build, package, reveal, schemes, argv_*
 src-tauri/resources/      palettes.json + schemes-spec-0.11, bundled into the .app
 ```
