@@ -6,6 +6,7 @@
 import type { Surface } from '../surface'
 
 import { argvSurface } from './argv'
+import { notesSurface } from './notes'
 import { themesSurface } from './themes'
 import { schemesSurface } from './schemes'
 import { sassySurface } from './sassy'
@@ -18,5 +19,6 @@ export const REGISTRY: Surface[] = [
 	{ ...schemesSurface },
 	{ ...argvSurface },
 	{ ...sassySurface },
-	{ ...untwSurface }
+	{ ...untwSurface },
+	{ ...notesSurface}
 ]

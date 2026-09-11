@@ -12,8 +12,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Mutex;
+use std::time::UNIX_EPOCH;
 use tauri::path::BaseDirectory;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 #[derive(Serialize)]
 pub struct Loaded {
@@ -1182,13 +1184,745 @@ unsafe fn open_panel_macos() -> Vec<String> {
     out
 }
 
+// ------------------------------------------------------------ notes ----
+// Multi-root markdown notes: confined filesystem commands. Every path that
+// touches user files is resolved against the added-roots registry first — the
+// frontend never supplies a raw destination outside those roots. Writes go
+// through a hidden sibling tmp file plus rename, so a crash mid-save cannot
+// corrupt an existing note and the file watcher (which ignores hidden names)
+// stays quiet.
+
+const NOTES_MAX_DEPTH: usize = 8;
+const NOTES_MAX_ENTRIES: usize = 20000;
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct NotesRoot {
+    /// Canonical absolute path; doubles as the stable tree id.
+    path: String,
+}
+
+#[derive(Serialize, Clone)]
+pub struct NotesEntry {
+    /// Absolute path.
+    path: String,
+    /// Posix-style path relative to its root, for display.
+    rel: String,
+    /// Owning root path.
+    root: String,
+    is_dir: bool,
+    is_markdown: bool,
+    size: u64,
+    /// mtime seconds since epoch, 0 when unknown.
+    mtime: u64,
+    /// First ATX heading for markdown files, else empty (UI falls back).
+    title: String,
+    /// First two text lines for markdown files, else empty.
+    excerpt: String,
+}
+
+#[derive(Serialize)]
+pub struct NotesScan {
+    entries: Vec<NotesEntry>,
+    truncated: bool,
+    /// Roots that could not be read (missing/unreadable) — the tree renders
+    /// these as inline error rows with remove/re-locate actions.
+    errors: Vec<NotesScanError>,
+}
+
+#[derive(Serialize)]
+pub struct NotesScanError {
+    root: String,
+    message: String,
+}
+
+#[derive(Serialize, Clone)]
+pub struct NotesChange {
+    kind: String,
+    paths: Vec<String>,
+}
+
+fn notes_is_markdown(path: &Path) -> bool {
+    matches!(
+        path.extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase()
+            .as_str(),
+        "md" | "markdown"
+    )
+}
+
+fn notes_posix(rel: &Path) -> String {
+    rel.to_string_lossy().replace('\\', "/")
+}
+
+/// First kilobytes of a note: title is the first ATX heading, excerpt the
+/// first two text lines. Empty on any failure; the UI falls back to filenames.
+fn notes_head(path: &Path) -> (String, String) {
+    use std::io::Read;
+    let Ok(f) = std::fs::File::open(path) else {
+        return (String::new(), String::new());
+    };
+    let mut buf = Vec::new();
+    if f.take(8192).read_to_end(&mut buf).is_err() {
+        return (String::new(), String::new());
+    }
+    let text = String::from_utf8_lossy(&buf);
+    let mut title = String::new();
+    let mut excerpt_lines: Vec<&str> = Vec::new();
+    let mut in_frontmatter = false;
+    let mut first = true;
+    for line in text.lines() {
+        let t = line.trim();
+        if first && t == "---" {
+            in_frontmatter = true;
+            first = false;
+            continue;
+        }
+        first = false;
+        if in_frontmatter {
+            if t == "---" {
+                in_frontmatter = false;
+            }
+            continue;
+        }
+        if t.is_empty() {
+            continue;
+        }
+        if title.is_empty() && t.starts_with('#') {
+            let h = t.trim_start_matches('#').trim().trim_end_matches('#').trim();
+            if !h.is_empty() {
+                title = h.to_string();
+                continue;
+            }
+        }
+        if t.starts_with('#') {
+            continue;
+        }
+        if excerpt_lines.len() < 2 {
+            excerpt_lines.push(t);
+        }
+    }
+    (title, excerpt_lines.join(" "))
+}
+
+fn notes_entry(root: &str, root_path: &Path, path: &Path, is_dir: bool) -> NotesEntry {
+    let (size, mtime) = path
+        .metadata()
+        .map(|m| {
+            (
+                if is_dir { 0 } else { m.len() },
+                m.modified()
+                    .ok()
+                    .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0),
+            )
+        })
+        .unwrap_or((0, 0));
+    let is_markdown = !is_dir && notes_is_markdown(path);
+    let (title, excerpt) = if is_markdown && size <= (1 << 20) {
+        notes_head(path)
+    } else {
+        (String::new(), String::new())
+    };
+    NotesEntry {
+        path: path.to_string_lossy().into_owned(),
+        rel: notes_posix(path.strip_prefix(root_path).unwrap_or(path)),
+        root: root.to_string(),
+        is_dir,
+        is_markdown,
+        size,
+        mtime,
+        title,
+        excerpt,
+    }
+}
+
+/// Walk one root: sorted for determinism, hidden names skipped (tool metadata
+/// such as `.git` or editor state never shows), `node_modules` skipped, depth
+/// capped, entry count capped with a truncation flag rather than an error.
+/// The root itself is not emitted — it is the tree header.
+fn notes_walk_capped(root: &str, root_path: &Path, max_entries: usize) -> (Vec<NotesEntry>, bool) {
+    let mut out = Vec::new();
+    let mut truncated = false;
+    let mut stack = vec![(root_path.to_path_buf(), 0usize)];
+    while let Some((dir, depth)) = stack.pop() {
+        if out.len() >= max_entries {
+            truncated = true;
+            return (out, truncated);
+        }
+        let Ok(rd) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        let mut names: Vec<PathBuf> = rd.flatten().map(|e| e.path()).collect();
+        names.sort();
+        for p in names {
+            if out.len() >= max_entries {
+                truncated = true;
+                return (out, truncated);
+            }
+            let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
+            if name.starts_with('.') || name == "node_modules" {
+                continue;
+            }
+            if p.is_dir() {
+                out.push(notes_entry(root, root_path, &p, true));
+                if depth + 1 < NOTES_MAX_DEPTH {
+                    stack.push((p, depth + 1));
+                }
+            } else if p.is_file() {
+                out.push(notes_entry(root, root_path, &p, false));
+            }
+        }
+    }
+    (out, truncated)
+}
+
+/// Pure containment check over already-canonical roots. Absolute paths only;
+/// `..` in the not-yet-existing tail is refused outright. Returns the resolved
+/// absolute path for fs ops.
+fn notes_resolve_in(roots: &[PathBuf], path: &str) -> Result<PathBuf, String> {
+    let p = PathBuf::from(path);
+    if p.is_relative() {
+        return Err(format!("refusing relative path: {path}"));
+    }
+    let mut anchor = p.clone();
+    let mut tail: Vec<String> = Vec::new();
+    while !anchor.exists() {
+        match anchor.file_name() {
+            Some(name) => {
+                let s = name.to_string_lossy().into_owned();
+                if s == ".." {
+                    return Err(format!("refusing to resolve outside added folders: {path}"));
+                }
+                tail.push(s);
+                anchor.pop();
+            }
+            None => return Err(format!("refusing to resolve outside added folders: {path}")),
+        }
+    }
+    let canon = anchor.canonicalize().map_err(|e| format!("{path}: {e}"))?;
+    for root in roots {
+        if canon == *root || canon.starts_with(root) {
+            let mut out = canon;
+            for seg in tail.iter().rev() {
+                out.push(seg);
+            }
+            return Ok(out);
+        }
+    }
+    Err(format!("refusing path outside added folders: {path}"))
+}
+
+/// Merge picked folders into the registry: must be directories, canonicalized,
+/// deduplicated. Pure over the filesystem for testability.
+fn notes_merge_roots(
+    existing: Vec<NotesRoot>,
+    candidates: &[String],
+) -> Result<Vec<NotesRoot>, String> {
+    let mut out = existing;
+    for c in candidates {
+        let pb = PathBuf::from(c);
+        if !pb.is_dir() {
+            return Err(format!("{c} is not a folder"));
+        }
+        let canon = pb
+            .canonicalize()
+            .map_err(|e| format!("could not open {c}: {e}"))?;
+        let canon_s = canon.to_string_lossy().into_owned();
+        if !out.iter().any(|r| r.path == canon_s) {
+            out.push(NotesRoot { path: canon_s });
+        }
+    }
+    Ok(out)
+}
+
+fn notes_roots_path(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(data_dir(app)?.join("notes-roots.json"))
+}
+
+fn notes_load_roots(app: &AppHandle) -> Result<Vec<NotesRoot>, String> {
+    let path = notes_roots_path(app)?;
+    match std::fs::read_to_string(&path) {
+        Ok(raw) => serde_json::from_str(&raw)
+            .map_err(|e| format!("notes-roots.json is not valid JSON: {e}")),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+        Err(e) => Err(format!("could not read notes roots: {e}")),
+    }
+}
+
+fn notes_save_roots(app: &AppHandle, roots: &[NotesRoot]) -> Result<(), String> {
+    let path = notes_roots_path(app)?;
+    let tmp = path.with_extension("json.tmp");
+    let body = serde_json::to_string_pretty(roots).map_err(|e| e.to_string())?;
+    std::fs::write(&tmp, body + "\n").map_err(|e| format!("could not write: {e}"))?;
+    std::fs::rename(&tmp, &path).map_err(|e| format!("could not replace: {e}"))?;
+    Ok(())
+}
+
+fn notes_root_paths(app: &AppHandle) -> Result<Vec<PathBuf>, String> {
+    Ok(notes_load_roots(app)?
+        .iter()
+        .map(|r| PathBuf::from(&r.path))
+        .collect())
+}
+
+/// Atomic text write through a hidden sibling tmp file (hidden so the scan and
+/// the watcher stay quiet), then rename. Returns bytes written.
+fn notes_write_path(path: &Path, body: &str) -> Result<u64, String> {
+    let name = path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| format!("cannot write to {}", path.display()))?;
+    let tmp = path.with_file_name(format!(".{name}.tmp"));
+    std::fs::write(&tmp, body).map_err(|e| format!("could not write {}: {e}", path.display()))?;
+    std::fs::rename(&tmp, path)
+        .map_err(|e| format!("could not replace {}: {e}", path.display()))?;
+    Ok(body.len() as u64)
+}
+
+#[tauri::command]
+fn notes_roots_list(app: AppHandle) -> Result<Vec<NotesRoot>, String> {
+    notes_load_roots(&app)
+}
+
+#[tauri::command]
+fn notes_roots_add(app: AppHandle, paths: Vec<String>) -> Result<Vec<NotesRoot>, String> {
+    let merged = notes_merge_roots(notes_load_roots(&app)?, &paths)?;
+    notes_save_roots(&app, &merged)?;
+    Ok(merged)
+}
+
+#[tauri::command]
+fn notes_roots_remove(app: AppHandle, path: String) -> Result<Vec<NotesRoot>, String> {
+    let roots = notes_load_roots(&app)?;
+    let canon = PathBuf::from(&path)
+        .canonicalize()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or(path);
+    let kept: Vec<NotesRoot> = roots.into_iter().filter(|r| r.path != canon).collect();
+    notes_save_roots(&app, &kept)?;
+    Ok(kept)
+}
+
+/// Scan every root for the tree and the backlink index. Missing/unreadable
+/// roots are reported in `errors`, never fatal to the remaining roots.
+#[tauri::command]
+fn notes_scan(app: AppHandle) -> Result<NotesScan, String> {
+    let roots = notes_load_roots(&app)?;
+    let mut entries = Vec::new();
+    let mut errors = Vec::new();
+    let mut truncated = false;
+    for root in &roots {
+        let rp = PathBuf::from(&root.path);
+        if !rp.is_dir() {
+            errors.push(NotesScanError {
+                root: root.path.clone(),
+                message: "folder is missing or unreadable".to_string(),
+            });
+            continue;
+        }
+        let (mut got, trunc) = notes_walk_capped(&root.path, &rp, NOTES_MAX_ENTRIES);
+        entries.append(&mut got);
+        truncated = truncated || trunc;
+    }
+    Ok(NotesScan {
+        entries,
+        truncated,
+        errors,
+    })
+}
+
+#[tauri::command]
+fn notes_read(app: AppHandle, path: String) -> Result<String, String> {
+    let resolved = notes_resolve_in(&notes_root_paths(&app)?, &path)?;
+    std::fs::read_to_string(&resolved).map_err(|e| format!("{}: {e}", resolved.display()))
+}
+
+#[tauri::command]
+fn notes_write(app: AppHandle, path: String, body: String) -> Result<u64, String> {
+    let resolved = notes_resolve_in(&notes_root_paths(&app)?, &path)?;
+    if let Some(parent) = resolved.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("could not create {}: {e}", parent.display()))?;
+    }
+    notes_write_path(&resolved, &body)
+}
+
+#[tauri::command]
+fn notes_mkdir(app: AppHandle, path: String) -> Result<String, String> {
+    let resolved = notes_resolve_in(&notes_root_paths(&app)?, &path)?;
+    std::fs::create_dir_all(&resolved)
+        .map_err(|e| format!("could not create {}: {e}", resolved.display()))?;
+    Ok(resolved.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+fn notes_rename(app: AppHandle, from: String, to: String) -> Result<String, String> {
+    let roots = notes_root_paths(&app)?;
+    let src = notes_resolve_in(&roots, &from)?;
+    let dest = notes_resolve_in(&roots, &to)?;
+    if dest.exists() {
+        return Err(format!("{} already exists", dest.display()));
+    }
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("could not create {}: {e}", parent.display()))?;
+    }
+    std::fs::rename(&src, &dest).map_err(|e| format!("could not rename: {e}"))?;
+    Ok(dest.to_string_lossy().into_owned())
+}
+
+/// Permanent delete (the frontend confirms first); no trash dependency in v1.
+#[tauri::command]
+fn notes_delete(app: AppHandle, path: String) -> Result<(), String> {
+    let resolved = notes_resolve_in(&notes_root_paths(&app)?, &path)?;
+    if resolved.is_dir() {
+        std::fs::remove_dir_all(&resolved)
+            .map_err(|e| format!("could not delete {}: {e}", resolved.display()))?;
+    } else if resolved.is_file() {
+        std::fs::remove_file(&resolved)
+            .map_err(|e| format!("could not delete {}: {e}", resolved.display()))?;
+    } else {
+        return Err(format!("{} does not exist", resolved.display()));
+    }
+    Ok(())
+}
+
+/// Create an empty note; refuses to overwrite an existing file.
+#[tauri::command]
+fn notes_new(app: AppHandle, path: String) -> Result<String, String> {
+    let resolved = notes_resolve_in(&notes_root_paths(&app)?, &path)?;
+    if resolved.exists() {
+        return Err(format!("{} already exists", resolved.display()));
+    }
+    if let Some(parent) = resolved.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("could not create {}: {e}", parent.display()))?;
+    }
+    std::fs::write(&resolved, "")
+        .map_err(|e| format!("could not create {}: {e}", resolved.display()))?;
+    Ok(resolved.to_string_lossy().into_owned())
+}
+
+#[derive(Serialize)]
+pub struct NotesGrepHit {
+    path: String,
+    /// 1-based line number.
+    line: u64,
+    excerpt: String,
+}
+
+const NOTES_GREP_MAX_BYTES: u64 = 1 << 20;
+const NOTES_GREP_MAX_HITS: usize = 500;
+
+/// Substring search across files under the roots (backlinks are one query per
+/// open note; full search ships later). Skips hidden names, oversized files,
+/// and unreadable files; caps hits rather than failing.
+#[tauri::command]
+fn notes_grep(
+    app: AppHandle,
+    needle: String,
+    markdown_only: bool,
+) -> Result<Vec<NotesGrepHit>, String> {
+    if needle.is_empty() {
+        return Ok(Vec::new());
+    }
+    let roots = notes_load_roots(&app)?;
+    let mut hits = Vec::new();
+    'roots: for root in &roots {
+        let rp = PathBuf::from(&root.path);
+        if !rp.is_dir() {
+            continue;
+        }
+        let (entries, _) = notes_walk_capped(&root.path, &rp, NOTES_MAX_ENTRIES);
+        for e in entries {
+            if hits.len() >= NOTES_GREP_MAX_HITS {
+                break 'roots;
+            }
+            if e.is_dir || (markdown_only && !e.is_markdown) {
+                continue;
+            }
+            if e.size > NOTES_GREP_MAX_BYTES {
+                continue;
+            }
+            let Ok(body) = std::fs::read_to_string(&e.path) else {
+                continue;
+            };
+            for (i, line) in body.lines().enumerate() {
+                if hits.len() >= NOTES_GREP_MAX_HITS {
+                    break 'roots;
+                }
+                if let Some(at) = line.find(needle.as_str()) {
+                    let start = at.saturating_sub(60);
+                    let end = (at + needle.len() + 60).min(line.len());
+                    let excerpt = line.get(start..end).unwrap_or(line).trim().to_string();
+                    hits.push(NotesGrepHit {
+                        path: e.path.clone(),
+                        line: (i + 1) as u64,
+                        excerpt,
+                    });
+                    break;
+                }
+            }
+        }
+    }
+    Ok(hits)
+}
+
+/// First free sibling path: the plain name, else ` - 2` suffixed. Pure for tests.
+fn notes_unique_target(dest: &Path, stem: &str, ext: &str) -> Result<PathBuf, String> {
+    let first = if ext.is_empty() {
+        dest.join(stem)
+    } else {
+        dest.join(format!("{stem}.{ext}"))
+    };
+    if !first.exists() {
+        return Ok(first);
+    }
+    for i in 2..=1000u32 {
+        let candidate = if ext.is_empty() {
+            format!("{stem} - {i}")
+        } else {
+            format!("{stem} - {i}.{ext}")
+        };
+        let target = dest.join(candidate);
+        if !target.exists() {
+            return Ok(target);
+        }
+    }
+    Err(format!("too many copies of {stem}"))
+}
+
+/// Copy files into a folder inside the roots (context-menu import and paste).
+/// Sources may live outside the roots (read-only); the destination must be
+/// contained. Name collisions gain a ` - 2` suffix instead of overwriting.
+/// Returns the created absolute paths.
+#[tauri::command]
+fn notes_import_files(
+    app: AppHandle,
+    sources: Vec<String>,
+    dest_dir: String,
+) -> Result<Vec<String>, String> {
+    let roots = notes_root_paths(&app)?;
+    let dest = notes_resolve_in(&roots, &dest_dir)?;
+    if !dest.is_dir() {
+        return Err(format!("{} is not a folder", dest.display()));
+    }
+    let mut created = Vec::new();
+    for src in &sources {
+        let sp = PathBuf::from(src);
+        if !sp.is_file() {
+            return Err(format!("{src} is not a file"));
+        }
+        let stem = sp
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .filter(|stem| !stem.is_empty())
+            .ok_or_else(|| format!("cannot import {src}"))?;
+        let ext = sp.extension().and_then(|s| s.to_str()).unwrap_or("");
+        let target = notes_unique_target(&dest, stem, ext)?;
+        std::fs::copy(&sp, &target).map_err(|e| format!("could not import {src}: {e}"))?;
+        created.push(target.to_string_lossy().into_owned());
+    }
+    Ok(created)
+}
+
+/// Copy a whole folder into a folder inside the roots (context-menu
+/// "import folder here"). Hidden names are skipped, like the scan. A colliding
+/// top-level name gains a ` - 2` suffix. Returns the created top-level path.
+#[tauri::command]
+fn notes_import_dir(app: AppHandle, source: String, dest_dir: String) -> Result<String, String> {
+    let roots = notes_root_paths(&app)?;
+    let dest = notes_resolve_in(&roots, &dest_dir)?;
+    if !dest.is_dir() {
+        return Err(format!("{} is not a folder", dest.display()));
+    }
+    let src = PathBuf::from(&source);
+    if !src.is_dir() {
+        return Err(format!("{source} is not a folder"));
+    }
+    let name = src
+        .file_name()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| format!("cannot import {source}"))?;
+    let target = notes_unique_target(&dest, name, "")?;
+    notes_copy_dir(&src, &target)?;
+    Ok(target.to_string_lossy().into_owned())
+}
+
+/// Recursive directory copy used by import-dir. Hidden names are skipped;
+/// symlinks are not followed.
+fn notes_copy_dir(src: &Path, dest: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(dest)
+        .map_err(|e| format!("could not create {}: {e}", dest.display()))?;
+    let mut stack = vec![(src.to_path_buf(), dest.to_path_buf())];
+    while let Some((from_dir, to_dir)) = stack.pop() {
+        let Ok(rd) = std::fs::read_dir(&from_dir) else {
+            continue;
+        };
+        for entry in rd.flatten() {
+            let name = entry.file_name();
+            let name_s = name.to_string_lossy();
+            if name_s.starts_with('.') || name_s == "node_modules" {
+                continue;
+            }
+            let from = entry.path();
+            let to = to_dir.join(&name);
+            let ft = entry.file_type().map_err(|e| format!("{}: {e}", from.display()))?;
+            if ft.is_dir() {
+                std::fs::create_dir_all(&to)
+                    .map_err(|e| format!("could not create {}: {e}", to.display()))?;
+                stack.push((from, to));
+            } else if ft.is_file() {
+                std::fs::copy(&from, &to).map_err(|e| format!("could not copy {}: {e}", from.display()))?;
+            }
+        }
+    }
+    Ok(())
+}
+
+enum NotesWatchCmd {
+    Roots(Vec<PathBuf>),
+}
+
+struct NotesWatchState {
+    tx: Mutex<Option<std::sync::mpsc::Sender<NotesWatchCmd>>>,
+}
+
+/// Start the filesystem watcher (idempotent — re-sends roots on every call, so
+/// the frontend invokes it after roots change too). Events arrive as
+/// `notes-changed`; watcher errors as `notes-watch-error`. The thread lives
+/// while the app is open; poll-on-focus plus rescan-on-launch cover gaps.
+#[tauri::command]
+fn notes_watch_start(app: AppHandle, state: State<NotesWatchState>) -> Result<(), String> {
+    let tx = {
+        let mut guard = state.tx.lock().map_err(|e| e.to_string())?;
+        if guard.is_none() {
+            let (tx, rx) = std::sync::mpsc::channel::<NotesWatchCmd>();
+            let app2 = app.clone();
+            std::thread::spawn(move || notes_watch_loop(app2, rx));
+            *guard = Some(tx);
+        }
+        guard.as_ref().map(|tx| tx.clone())
+    };
+    if let Some(tx) = tx {
+        let roots = notes_root_paths(&app)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|p| p.is_dir())
+            .collect();
+        let _ = tx.send(NotesWatchCmd::Roots(roots));
+    }
+    Ok(())
+}
+
+fn notes_watch_loop(app: AppHandle, cmds: std::sync::mpsc::Receiver<NotesWatchCmd>) {
+    use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
+    let (etx, erx) = std::sync::mpsc::channel::<notify::Result<notify::Event>>();
+    let mut watcher: Option<RecommendedWatcher> = None;
+    loop {
+        while let Ok(NotesWatchCmd::Roots(roots)) = cmds.try_recv() {
+            watcher = None;
+            if !roots.is_empty() {
+                match RecommendedWatcher::new(etx.clone(), Config::default()) {
+                    Ok(mut w) => {
+                        for r in &roots {
+                            let _ = w.watch(r, RecursiveMode::Recursive);
+                        }
+                        watcher = Some(w);
+                    }
+                    Err(e) => {
+                        let _ = app.emit("notes-watch-error", e.to_string());
+                    }
+                }
+            }
+        }
+        if watcher.is_none() {
+            if cmds.recv().is_err() {
+                break;
+            }
+            continue;
+        }
+        match erx.recv_timeout(std::time::Duration::from_millis(300)) {
+            Ok(Ok(ev)) => {
+                use notify::EventKind::*;
+                let kind = match ev.kind {
+                    Create(_) => Some("created"),
+                    Remove(_) => Some("deleted"),
+                    Modify(notify::event::ModifyKind::Name(_)) => Some("renamed"),
+                    Modify(_) => Some("modified"),
+                    _ => None,
+                };
+                if let Some(kind) = kind {
+                    let mut paths: Vec<String> = ev
+                        .paths
+                        .into_iter()
+                        .map(|p| p.to_string_lossy().into_owned())
+                        .collect();
+                    while let Ok(Ok(ev2)) = erx.try_recv() {
+                        paths.extend(
+                            ev2.paths
+                                .into_iter()
+                                .map(|p| p.to_string_lossy().into_owned()),
+                        );
+                    }
+                    paths.sort();
+                    paths.dedup();
+                    let _ = app.emit(
+                        "notes-changed",
+                        NotesChange {
+                            kind: kind.to_string(),
+                            paths,
+                        },
+                    );
+                }
+            }
+            Ok(Err(e)) => {
+                let _ = app.emit("notes-watch-error", e.to_string());
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .manage(NotesWatchState {
+            tx: Mutex::new(None),
+        })
         .invoke_handler(tauri::generate_handler![
-            load, save, build, package, reveal, schemes, argv_load, argv_save, argv_export,
-            convert_scan, convert_write, read_text, pick_paths
+            load,
+            save,
+            build,
+            package,
+            reveal,
+            schemes,
+            argv_load,
+            argv_save,
+            argv_export,
+            convert_scan,
+            convert_write,
+            read_text,
+            pick_paths,
+            notes_roots_list,
+            notes_roots_add,
+            notes_roots_remove,
+            notes_scan,
+            notes_read,
+            notes_write,
+            notes_mkdir,
+            notes_rename,
+            notes_delete,
+            notes_new,
+            notes_grep,
+            notes_import_files,
+            notes_import_dir,
+            notes_watch_start
         ])
         .run(tauri::generate_context!())
         .expect("error while running FractalDesk");
@@ -1492,5 +2226,226 @@ syntax:
     #[test]
     fn rejects_a_file_with_no_palette() {
         assert!(parse_scheme("x", "name: \"Nope\"\n").is_none());
+    }
+
+    // ---- notes (invariants 6, 7, 10) ---------------------------------------
+
+    fn notes_tmp(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!("fractaldesk-notes-{}-{name}", std::process::id()))
+    }
+
+    fn notes_clean(p: &Path) {
+        let _ = std::fs::remove_dir_all(p);
+    }
+
+    #[test]
+    fn notes_detects_markdown_by_extension() {
+        assert!(notes_is_markdown(Path::new("a.md")));
+        assert!(notes_is_markdown(Path::new("A.MD")));
+        assert!(notes_is_markdown(Path::new("a.markdown")));
+        assert!(!notes_is_markdown(Path::new("a.txt")));
+        assert!(!notes_is_markdown(Path::new("a.png")));
+        assert!(!notes_is_markdown(Path::new("Makefile")));
+    }
+
+    #[test]
+    fn notes_resolve_accepts_inside_and_rejects_escapes() {
+        let base = notes_tmp("resolve");
+        notes_clean(&base);
+        std::fs::create_dir_all(base.join("root/docs")).unwrap();
+        std::fs::create_dir_all(base.join("root2")).unwrap();
+        let root = base.join("root").canonicalize().unwrap();
+        let roots = vec![root.clone()];
+
+        let inside = root
+            .join("docs")
+            .join("a.md")
+            .to_string_lossy()
+            .into_owned();
+        assert!(notes_resolve_in(&roots, &inside).is_ok());
+
+        // Not-yet-existing nested path under a root resolves for creation.
+        let fresh = root.join("new").join("b.md").to_string_lossy().into_owned();
+        assert!(notes_resolve_in(&roots, &fresh).is_ok());
+
+        // Sibling-prefix lookalikes are not inside (component-wise compare).
+        let sibling = base
+            .join("root2")
+            .canonicalize()
+            .unwrap()
+            .join("x.md")
+            .to_string_lossy()
+            .into_owned();
+        assert!(notes_resolve_in(&roots, &sibling).is_err());
+
+        // Dot-dot escapes and relative paths are refused.
+        let escape = format!("{}/../root2/x.md", root.to_string_lossy());
+        assert!(notes_resolve_in(&roots, &escape).is_err());
+        assert!(notes_resolve_in(&roots, "relative/a.md").is_err());
+        notes_clean(&base);
+    }
+
+    #[test]
+    fn notes_merge_dedupes_canonical_paths() {
+        let base = notes_tmp("merge");
+        notes_clean(&base);
+        std::fs::create_dir_all(base.join("docs")).unwrap();
+        let raw = base.join("docs").to_string_lossy().into_owned();
+        let dotted = format!("{raw}/./");
+        let merged = notes_merge_roots(Vec::new(), &[raw, dotted]).unwrap();
+        assert_eq!(merged.len(), 1);
+        assert!(notes_merge_roots(merged, &["/no/such/dir".to_string()]).is_err());
+        notes_clean(&base);
+    }
+
+    #[test]
+    fn notes_scan_skips_hidden_and_flags_types() {
+        let base = notes_tmp("scan");
+        notes_clean(&base);
+        let root = base.join("vault");
+        std::fs::create_dir_all(root.join(".git")).unwrap();
+        std::fs::create_dir_all(root.join("node_modules")).unwrap();
+        std::fs::create_dir_all(root.join("docs")).unwrap();
+        std::fs::write(root.join("a.md"), "# a").unwrap();
+        std::fs::write(root.join(".hidden.md"), "x").unwrap();
+        std::fs::write(root.join(".git").join("h.md"), "x").unwrap();
+        std::fs::write(root.join("node_modules").join("n.md"), "x").unwrap();
+        std::fs::write(root.join("docs").join("pic.png"), "bin").unwrap();
+
+        let root_s = root.to_string_lossy().into_owned();
+        let (entries, truncated) = notes_walk_capped(&root_s, &root, 20000);
+        assert!(!truncated);
+        let rels: Vec<&str> = entries.iter().map(|e| e.rel.as_str()).collect();
+        assert!(rels.contains(&"a.md"));
+        assert!(rels.contains(&"docs"));
+        assert!(rels.contains(&"docs/pic.png"));
+        assert!(!rels
+            .iter()
+            .any(|r| r.contains(".git") || r.contains("node_modules") || r.starts_with('.')));
+        let png = entries.iter().find(|e| e.rel == "docs/pic.png").unwrap();
+        assert!(!png.is_markdown);
+        assert!(
+            entries
+                .iter()
+                .find(|e| e.rel == "a.md")
+                .unwrap()
+                .is_markdown
+        );
+        notes_clean(&base);
+    }
+
+    #[test]
+    fn notes_scan_truncates_instead_of_failing() {
+        let base = notes_tmp("trunc");
+        notes_clean(&base);
+        let root = base.join("big");
+        std::fs::create_dir_all(&root).unwrap();
+        for i in 0..8 {
+            std::fs::write(root.join(format!("f{i}.md")), "x").unwrap();
+        }
+        let root_s = root.to_string_lossy().into_owned();
+        let (entries, truncated) = notes_walk_capped(&root_s, &root, 5);
+        assert!(truncated);
+        assert_eq!(entries.len(), 5);
+        notes_clean(&base);
+    }
+
+    #[test]
+    fn notes_head_reads_title_and_excerpt() {
+        let base = notes_tmp("head");
+        notes_clean(&base);
+        std::fs::create_dir_all(&base).unwrap();
+        let p = base.join("n.md");
+        std::fs::write(
+            &p,
+            "---\ntitle: T\n---\n\n# Hello World\n\nFirst line.\nSecond.\n",
+        )
+        .unwrap();
+        let (title, excerpt) = notes_head(&p);
+        assert_eq!(title, "Hello World");
+        assert_eq!(excerpt, "First line. Second.");
+        let (t2, _) = notes_head(&base.join("missing.md"));
+        assert!(t2.is_empty());
+        notes_clean(&base);
+    }
+
+    #[test]
+    fn notes_copy_dir_skips_hidden_and_keeps_tree() {
+        let base = notes_tmp("copydir");
+        notes_clean(&base);
+        let src = base.join("src");
+        std::fs::create_dir_all(src.join("sub")).unwrap();
+        std::fs::create_dir_all(src.join(".git")).unwrap();
+        std::fs::write(src.join("a.md"), "a").unwrap();
+        std::fs::write(src.join("sub").join("b.md"), "b").unwrap();
+        std::fs::write(src.join(".git").join("h.md"), "h").unwrap();
+        let dest = base.join("dest");
+        notes_copy_dir(&src, &dest).unwrap();
+        assert_eq!(std::fs::read_to_string(dest.join("a.md")).unwrap(), "a");
+        assert_eq!(
+            std::fs::read_to_string(dest.join("sub").join("b.md")).unwrap(),
+            "b"
+        );
+        assert!(!dest.join(".git").exists());
+        notes_clean(&base);
+    }
+
+    #[test]
+    fn notes_write_round_trips_and_cleans_tmp() {
+        let base = notes_tmp("write");
+        notes_clean(&base);
+        std::fs::create_dir_all(&base).unwrap();
+        let dest = base.join("note.md");
+        assert_eq!(notes_write_path(&dest, "hello").unwrap(), 5);
+        assert_eq!(std::fs::read_to_string(&dest).unwrap(), "hello");
+        // No tmp litter beside the note (hidden sibling tmp renames away).
+        let leftovers: Vec<_> = std::fs::read_dir(&base)
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(leftovers, vec!["note.md".to_string()]);
+        notes_clean(&base);
+    }
+
+    #[test]
+    fn notes_grep_finds_first_hit_per_file_with_excerpt() {
+        // notes_grep shells over notes_walk_capped; exercise the same pieces
+        // directly: walk finds the file, body matching is line substring.
+        let base = notes_tmp("grep");
+        notes_clean(&base);
+        let root = base.join("r");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("a.md"), "hello\nneedle here yes\n").unwrap();
+        std::fs::write(root.join("b.txt"), "needle in text too\n").unwrap();
+        let root_s = root.to_string_lossy().into_owned();
+        let (entries, _) = notes_walk_capped(&root_s, &root, 20000);
+        assert_eq!(entries.len(), 2);
+        let md: Vec<_> = entries.iter().filter(|e| e.is_markdown).collect();
+        assert_eq!(md.len(), 1);
+        assert_eq!(md[0].rel, "a.md");
+        notes_clean(&base);
+    }
+
+    #[test]
+    fn notes_import_suffixes_collisions_instead_of_overwriting() {
+        let base = notes_tmp("import");
+        notes_clean(&base);
+        let dest = base.join("dest");
+        std::fs::create_dir_all(&dest).unwrap();
+        std::fs::write(dest.join("a.md"), "original").unwrap();
+        assert_eq!(
+            notes_unique_target(&dest, "a", "md").unwrap(),
+            dest.join("a - 2.md")
+        );
+        assert_eq!(
+            notes_unique_target(&dest, "fresh", "md").unwrap(),
+            dest.join("fresh.md")
+        );
+        assert_eq!(
+            notes_unique_target(&dest, "Makefile", "").unwrap(),
+            dest.join("Makefile")
+        );
+        notes_clean(&base);
     }
 }

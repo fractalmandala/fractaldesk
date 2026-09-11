@@ -98,8 +98,8 @@
 	})
 </script>
 
-<div class="browser">
-	<aside>
+
+<aside class="sidebar-left">
 		<div class="filters">
 			<input class="q" placeholder="Search {schemes.list.length} schemes…" bind:value={query} spellcheck="false" />
 			<div class="chips">
@@ -124,9 +124,9 @@
 			{/each}
 			{#if !list.length}<p class="none">Nothing matches.</p>{/if}
 		</div>
-	</aside>
-
-	<main>
+</aside>
+<section class="main-section">
+	<div class="content-section narrow-wide">
 		{#if !schemes.list.length}
 			<p class="none big">
 				No scheme collection found. Put <code>schemes-spec-0.11</code> beside
@@ -227,22 +227,11 @@
 				<button class="btn primary" disabled={!ready} onclick={saveAsNew}>Save as new pair</button>
 			</div>
 		{/if}
-	</main>
-</div>
+	</div>
+
+</section>
 
 <style lang="sass">
-.browser
-	display: grid
-	grid-template-columns: 300px 1fr
-	height: 100%
-	min-height: 0
-
-aside
-	background: var(--sunk)
-	border-right: 1px solid var(--rule)
-	display: flex
-	flex-direction: column
-	min-height: 0
 
 .filters
 	padding: 14px

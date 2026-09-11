@@ -3,39 +3,97 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <link href="./_app/immutable/entry/start.BX-Xg-FK.js" rel="modulepreload">
+    <link href="./_app/immutable/entry/start.C14Gm6By.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/CUqCdBQG.js" rel="modulepreload">
-		<link href="./_app/immutable/chunks/kRJG-qCD.js" rel="modulepreload">
+		<link href="./_app/immutable/chunks/dUGYYc2H.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/_qRwWQhU.js" rel="modulepreload">
-		<link href="./_app/immutable/entry/app.BFPTy--O.js" rel="modulepreload">
+		<link href="./_app/immutable/entry/app.9hPO5PP3.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/DBSTzikj.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/CceL6had.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/B3fYBq26.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/BkowBAkq.js" rel="modulepreload">
-		<link href="./_app/immutable/nodes/0.ClaYCOjc.js" rel="modulepreload">
-		<link href="./_app/immutable/nodes/2.DY6m9S76.js" rel="modulepreload">
+		<link href="./_app/immutable/nodes/0.D-3u8Yyw.js" rel="modulepreload">
+		<link href="./_app/immutable/nodes/2.CuzTM3g4.js" rel="modulepreload">
 		
-		<link href="./_app/immutable/assets/0.Bdpm-NMc.css" rel="stylesheet">
-		<link href="./_app/immutable/assets/2.BW-QHTfj.css" rel="stylesheet">
+		<link href="./_app/immutable/assets/0.DSmCxCiA.css" rel="stylesheet">
+		<link href="./_app/immutable/assets/2.Dq2F9o1Z.css" rel="stylesheet">
   </head>
   <body data-sveltekit-preload-data="hover">
     <div style="display: contents">
 			<script>
 				{
-					__sveltekit_1fcx4wt = {
+					__sveltekit_1uvoelz = {
 						base: new URL(".", location).pathname.slice(0, -1)
 					};
 
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("./_app/immutable/entry/start.BX-Xg-FK.js"),
-						import("./_app/immutable/entry/app.BFPTy--O.js")
+						import("./_app/immutable/entry/start.C14Gm6By.js"),
+						import("./_app/immutable/entry/app.9hPO5PP3.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element);
 					});
 				}
 			</script>
 		</div>
+    <script>
+      // TEMP-PROOF probe (revert after diagnosis): paint boot failures visibly.
+      (function () {
+        function show(msg) {
+          var el = document.getElementById('boot-probe');
+          if (!el) {
+            el = document.createElement('pre');
+            el.id = 'boot-probe';
+            el.style.cssText =
+              'position:fixed;inset:0;z-index:99999;background:#111;color:#7dff9e;padding:24px;font:12px/1.6 monospace;white-space:pre-wrap;overflow:auto;margin:0';
+            document.body.appendChild(el);
+          }
+          el.textContent += msg + '\n';
+        }
+        window.addEventListener(
+          'error',
+          function (e) {
+            show('ERR ' + (e.message || '(no message)') + ' @ ' + (e.filename || '?') + ':' + (e.lineno || '?'));
+          },
+          true
+        );
+        window.addEventListener('unhandledrejection', function (e) {
+          show('REJ ' + String((e.reason && e.reason.message) || e.reason));
+        });
+        show('LOC ' + location.href + ' UA-Tauri=' + ('__TAURI_INTERNALS__' in window));
+        fetch('/_app/immutable/entry/start.CoedMNCf.js')
+          .then(function (r) {
+            show('FETCH status=' + r.status + ' type=' + r.headers.get('content-type'));
+            return r.text();
+          })
+          .then(function (t) {
+            show('FETCH bytes=' + t.length + ' head=' + t.slice(0, 60).replace(/\n/g, ' '));
+          })
+          .catch(function (e) {
+            show('FETCH ERR ' + e);
+          });
+        Promise.race([
+          import('/_app/immutable/entry/start.CoedMNCf.js').then(function () {
+            return 'IMPORT OK';
+          }),
+          new Promise(function (res) {
+            setTimeout(function () {
+              res('IMPORT STILL PENDING @4s');
+            }, 4000);
+          })
+        ]).then(show);
+        setTimeout(function () {
+          var scripts = Array.prototype.map.call(document.scripts, function (s) {
+            return (s.src || '(inline)') + (s.type ? ' [' + s.type + ']' : '');
+          });
+          show('T+6s readyState=' + document.readyState + ' scripts=' + scripts.length);
+          scripts.forEach(function (src) {
+            show('  src: ' + src);
+          });
+          show('  bodyChildren=' + document.body.children.length);
+        }, 6000);
+      })();
+    </script>
   </body>
 </html>

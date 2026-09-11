@@ -73,7 +73,7 @@ src/
     bus.ts                cross-surface pub/sub; event contracts typed in events.ts
     events.ts             typed bus event contract (IMPORT_PAIR, ImportPairPayload)
     palette-meta.ts       shared read-only projection of the themes document meta
-    surfaces/registry.ts  typed surface registry (themes, schemes, argv, sassy, untw)
+    surfaces/registry.ts  typed surface registry (themes, schemes, argv, sassy, untw, notes)
     surfaces/themes/      the Themes surface — state, editor, toolbar, tables
     surfaces/schemes/     the Schemes surface — state, browser, scheme mapping
     surfaces/argv/        the Argv surface — state, tree editor, toolbar, spec parser
@@ -84,14 +84,16 @@ src/
     color.ts              WCAG luminance and contrast
     surfaces/untw/        the Untw surface — offline decode engine (extract,
                           variants, resolve, map), toolbar, golden-replay tooling in tools/untw/
-src-tauri/src/lib.rs      commands: load, save, build, package, reveal, schemes, argv_*
+    surfaces/notes/       the Notes surface — multi-root markdown tree, list, raw (CodeMirror 6)
+                          plus rich (Milkdown Crepe) editor, info sidebar, file:// links
+src-tauri/src/lib.rs      commands: load, save, build, package, reveal, schemes, argv_*, notes_*
 src-tauri/resources/      palettes.json + schemes-spec-0.11, bundled into the .app
 ```
 
 `cargo test` covers the validator, the ported colour maths, the theme generator (including a
-byte-for-byte fidelity check against the old `build.py` output), the scheme parser, and the
-shell quoting — the places a bug would corrupt `palettes.json`, drift from the reference
-themes, or break on a path with an apostrophe in it.
+byte-for-byte fidelity check against the old `build.py` output), the scheme parser, the
+shell quoting, and the notes containment/scan/write helpers — the places a bug would corrupt `palettes.json`, drift from the reference
+themes, break on a path with an apostrophe in it, or escape the added-folders roots.
 
 This app is its own pnpm root (`pnpm-workspace.yaml`) so it does not inherit the fractutils
 workspace; plain `pnpm install` works from this folder.

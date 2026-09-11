@@ -12,6 +12,8 @@ tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
+# Filesystem watcher for the Notes surface (debounced in the watch thread).
+notify = "8"
 
 # Native macOS open panel for the Sassy surface: one dialog that lets the user
 # select files AND folders together (the JS dialog plugin can only do one).

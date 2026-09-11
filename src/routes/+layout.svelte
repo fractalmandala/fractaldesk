@@ -1,5 +1,5 @@
 <script>
-	import '$lib/styles/own.sass'
+	import '$lib/styles/index.sass'
 	import '../app.sass'
 	let { children } = $props()
 </script>

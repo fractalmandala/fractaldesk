@@ -590,19 +590,19 @@ function Sidebar($$renderer, $$props) {
       label: fam.label,
       items: themes.doc.themes.map((t, i) => ({ t, i })).filter(({ t }) => t.family === id)
     })).filter((g) => g.items.length));
-    $$renderer2.push(`<aside class="svelte-636fy3"><!--[-->`);
+    $$renderer2.push(`<div class="box gap-bs pad-sm border-right hfull"><!--[-->`);
     const each_array = ensure_array_like(grouped());
     for (let $$index_1 = 0, $$length = each_array.length; $$index_1 < $$length; $$index_1++) {
       let g = each_array[$$index_1];
-      $$renderer2.push(`<div class="fam svelte-636fy3">${escape_html(g.label)} · ${escape_html(g.items.length)}</div> <!--[-->`);
+      $$renderer2.push(`<div class="box gap-sm"><div class="text-theme tt-u text-sm">${escape_html(g.label)} | ${escape_html(g.items.length)}</div> <!--[-->`);
       const each_array_1 = ensure_array_like(g.items);
       for (let $$index = 0, $$length2 = each_array_1.length; $$index < $$length2; $$index++) {
         let { t, i } = each_array_1[$$index];
-        $$renderer2.push(`<button${attr_class("item svelte-636fy3", void 0, { "on": i === themes.cur })}><span class="pair svelte-636fy3"><i${attr_style(`background:${stringify(t.light.bg)}`)} class="svelte-636fy3"></i> <i${attr_style(`background:${stringify(t.dark.bg)}`)} class="svelte-636fy3"></i> <i${attr_style(`background:${stringify(t.light.accent)}`)} class="svelte-636fy3"></i></span> <span class="nm svelte-636fy3">${escape_html(t.name)}</span></button>`);
+        $$renderer2.push(`<div class="box gap-sm"><button${attr_class("row button ghost ta-l gap-sm xleft", void 0, { "on": i === themes.cur })}><span class="pair row ta-l svelte-636fy3"><i${attr_style(`background:${stringify(t.light.bg)}`)} class="svelte-636fy3"></i> <i${attr_style(`background:${stringify(t.dark.bg)}`)} class="svelte-636fy3"></i></span> <span${attr_style(`color: ${stringify(t.light.accent)}`)}>${escape_html(t.name)}</span></button></div>`);
       }
-      $$renderer2.push(`<!--]-->`);
+      $$renderer2.push(`<!--]--></div>`);
     }
-    $$renderer2.push(`<!--]--> <div class="acts svelte-636fy3"><button class="btn svelte-636fy3">New</button> <button class="btn svelte-636fy3">Dupe</button> <button class="btn svelte-636fy3">Delete</button></div></aside>`);
+    $$renderer2.push(`<!--]--> <div class="acts"><button class="btn">New</button> <button class="btn">Dupe</button> <button class="btn">Delete</button></div></div>`);
   });
 }
 const SAMPLES = {
@@ -921,17 +921,17 @@ function Surface$3($$renderer, $$props) {
       };
     }
     if (!themes.doc) {
-      $$renderer2.push("<!--[0-->");
+      $$renderer2.push(`<!--[0--><div class="box">`);
       if (app.busy) {
         $$renderer2.push(`<!--[0--><div class="blank svelte-omjwkq"><p>Loading…</p></div>`);
       } else {
         $$renderer2.push(`<!--[-1--><div class="blank svelte-omjwkq"><p>Couldn't open the theme data.</p> <button class="btn primary">Retry</button></div>`);
       }
-      $$renderer2.push(`<!--]-->`);
+      $$renderer2.push(`<!--]--></div>`);
     } else {
-      $$renderer2.push("<!--[-1-->");
+      $$renderer2.push(`<!--[-1--><aside class="sidebar-left">`);
       Sidebar($$renderer2);
-      $$renderer2.push(`<!----> <main class="svelte-omjwkq"><div class="head svelte-omjwkq"><label class="field svelte-omjwkq"><span class="svelte-omjwkq">Name</span> <input class="name svelte-omjwkq"${attr("value", entry().name)}/></label> <label class="field svelte-omjwkq"><span class="svelte-omjwkq">Family</span> `);
+      $$renderer2.push(`<!----></aside> <section class="main-section"><div class="content-section narrow-wide"><div class="box"><label class="field svelte-omjwkq"><span class="svelte-omjwkq">Name</span> <input class="name svelte-omjwkq"${attr("value", entry().name)}/></label> <label class="field svelte-omjwkq"><span class="svelte-omjwkq">Family</span> `);
       $$renderer2.select(
         {
           value: entry().family,
@@ -956,7 +956,7 @@ function Surface$3($$renderer, $$props) {
       if ($$body) {
         $$renderer2.push(`${$$body}`);
       }
-      $$renderer2.push(`</textarea></label></div> <div class="panes svelte-omjwkq"><!--[-->`);
+      $$renderer2.push(`</textarea></label> <div class="grid-2"><!--[-->`);
       const each_array_1 = ensure_array_like([
         ["light", themes.doc.meta.lightPrefix],
         ["dark", themes.doc.meta.darkPrefix]
@@ -970,12 +970,13 @@ function Surface$3($$renderer, $$props) {
       }
       $$renderer2.push(`<!--]--></div> <h2 class="sec">Palette — contrast against each mode's own background</h2> `);
       RoleTable($$renderer2, { entry: entry() });
-      $$renderer2.push(`<!----> <h2 class="sec">Workbench — inherited from the palette unless overridden</h2> <p class="hint">Each surface shows the value it derives from the core palette. Type a colour to pin it;
-			× restores inheritance so it keeps tracking the palette.</p> `);
+      $$renderer2.push(`<!----> <h2 class="sec">Workbench — inherited from the palette unless overridden</h2> <p class="hint">Each surface shows the value it derives from the core palette. Type a colour to
+					pin it; × restores inheritance so it keeps tracking the palette.</p> `);
       WorkbenchTable($$renderer2, { entry: entry() });
-      $$renderer2.push(`<!----> <details class="svelte-omjwkq"><summary class="svelte-omjwkq">Diagnostics for the ${escape_html(family().label)} family — shared by every theme in it</summary> <div class="body svelte-omjwkq"><p class="hint">Errors, warnings and git status stay hued even in the monochrome families: a red
-					squiggle that reads as ink is one you miss. Editing these changes every
-					${escape_html(family().label)} theme.</p> <table class="roles"><thead><tr><th>role</th><th>${escape_html(themes.doc.meta.lightPrefix)}</th><th>${escape_html(themes.doc.meta.darkPrefix)}</th></tr></thead><tbody><!--[-->`);
+      $$renderer2.push(`<!----> <details class="svelte-omjwkq"><summary class="svelte-omjwkq">Diagnostics for the ${escape_html(family().label)} family — shared by every theme in it</summary> <div class="body svelte-omjwkq"><p class="hint">Errors, warnings and git status stay hued even in the monochrome
+							families: a red squiggle that reads as ink is one you miss. Editing
+							these changes every
+							${escape_html(family().label)} theme.</p> <table class="roles"><thead><tr><th>role</th><th>${escape_html(themes.doc.meta.lightPrefix)}</th><th>${escape_html(themes.doc.meta.darkPrefix)}</th></tr></thead><tbody><!--[-->`);
       const each_array_2 = ensure_array_like(Object.keys(family().semantic.light));
       for (let $$index_3 = 0, $$length = each_array_2.length; $$index_3 < $$length; $$index_3++) {
         let k = each_array_2[$$index_3];
@@ -997,7 +998,7 @@ function Surface$3($$renderer, $$props) {
         }
         $$renderer2.push(`<!--]--></tr>`);
       }
-      $$renderer2.push(`<!--]--></tbody></table></div></details></main>`);
+      $$renderer2.push(`<!--]--></tbody></table></div></details></div></div></section>`);
     }
     $$renderer2.push(`<!--]-->`);
   });
@@ -1112,7 +1113,7 @@ function Surface$2($$renderer, $$props) {
       const f = ratio(p.bg, p.fg);
       return { v: f.toFixed(2), g: grade(f), pass: f >= 4.5 };
     }
-    $$renderer2.push(`<div class="browser svelte-hb9tuk"><aside class="svelte-hb9tuk"><div class="filters svelte-hb9tuk"><input class="q svelte-hb9tuk"${attr("placeholder", `Search ${stringify(
+    $$renderer2.push(`<aside class="sidebar-left"><div class="filters svelte-hb9tuk"><input class="q svelte-hb9tuk"${attr("placeholder", `Search ${stringify(
       // Default the family select to the first family once the document loads.
       schemes.list.length
     )} schemes…`)}${attr("value", query)} spellcheck="false"/> <div class="chips svelte-hb9tuk"><!--[-->`);
@@ -1145,7 +1146,7 @@ function Surface$2($$renderer, $$props) {
     } else {
       $$renderer2.push("<!--[-1-->");
     }
-    $$renderer2.push(`<!--]--></div></aside> <main class="svelte-hb9tuk">`);
+    $$renderer2.push(`<!--]--></div></aside> <section class="main-section"><div class="content-section narrow-wide">`);
     if (!schemes.list.length) {
       $$renderer2.push(`<!--[0--><p class="none big svelte-hb9tuk">No scheme collection found. Put <code class="svelte-hb9tuk">schemes-spec-0.11</code> beside <code class="svelte-hb9tuk">palettes.json</code> and reopen the project.</p>`);
     } else if (!selected()) {
@@ -1190,7 +1191,7 @@ function Surface$2($$renderer, $$props) {
     {
       $$renderer2.push("<!--[-1-->");
     }
-    $$renderer2.push(`<!--]--></main></div>`);
+    $$renderer2.push(`<!--]--></div></section>`);
   });
 }
 const schemesSurface = {
@@ -1309,8 +1310,7 @@ const REGISTRY = [
 function _page($$renderer, $$props) {
   $$renderer.component(($$renderer2) => {
     const current = derived(() => REGISTRY.find((s) => s.id === app.view));
-    const wide = derived(() => current() ? (current().fullWhileLoading?.() ?? false) || current().full : true);
-    $$renderer2.push(`<header class="app-header svelte-1uha8ag" data-tauri-drag-region=""><div class="global svelte-1uha8ag"><p data-tauri-drag-region="">fractaldesk</p> <div class="views svelte-1uha8ag" role="group" aria-label="Surface"><!--[-->`);
+    $$renderer2.push(`<div class="app-shell"><header class="app-header" data-tauri-drag-region=""><div class="row ycenter gap-sm" role="group" aria-label="Surface"><!--[-->`);
     const each_array = ensure_array_like(
       // Call the active surface's load hook the first time it becomes active.
       REGISTRY
@@ -1318,9 +1318,9 @@ function _page($$renderer, $$props) {
     for (let $$index = 0, $$length = each_array.length; $$index < $$length; $$index++) {
       let s = each_array[$$index];
       const badge = s.badge?.(app);
-      $$renderer2.push(`<button${attr_class("primary svelte-1uha8ag", void 0, { "active": app.view === s.id })}>${escape_html(s.label)}${escape_html(badge ? ` · ${badge}` : "")}</button>`);
+      $$renderer2.push(`<button${attr_class("button primary", void 0, { "active": app.view === s.id })}>${escape_html(s.label)}${escape_html(badge ? ` · ${badge}` : "")}</button>`);
     }
-    $$renderer2.push(`<!--]--></div></div> <span class="grow svelte-1uha8ag" data-tauri-drag-region=""></span> <span${attr_class(`msg ${stringify(app.kind)}`, "svelte-1uha8ag")}>${escape_html(app.msg)}</span> <div class="conditional svelte-1uha8ag">`);
+    $$renderer2.push(`<!--]--></div> <div class="grow wfull hfull" data-tauri-drag-region=""><span${attr_class(`msg text-sm ${stringify(app.kind)}`, "svelte-1uha8ag")}>${escape_html(app.msg)}</span></div> <div class="row ycenter gap-sm">`);
     if (current()?.toolbar) {
       $$renderer2.push("<!--[0-->");
       const Toolbar2 = current().toolbar;
@@ -1335,7 +1335,7 @@ function _page($$renderer, $$props) {
     } else {
       $$renderer2.push("<!--[-1-->");
     }
-    $$renderer2.push(`<!--]--></div></header> <div${attr_class("shell svelte-1uha8ag", void 0, { "full": wide() })}>`);
+    $$renderer2.push(`<!--]--></div></header> <main class="app-main wfull">`);
     if (current()) {
       $$renderer2.push("<!--[0-->");
       const Body = current().component;
@@ -1348,15 +1348,15 @@ function _page($$renderer, $$props) {
         $$renderer2.push("<!--]-->");
       }
     } else {
-      $$renderer2.push(`<!--[-1--><div class="picker svelte-1uha8ag"><p class="svelte-1uha8ag">Pick a surface</p> <div class="views big svelte-1uha8ag"><!--[-->`);
+      $$renderer2.push(`<!--[-1--><div class="box wfull hfull ycenter xcenter"><p>Pick a surface</p> <div class="views big"><!--[-->`);
       const each_array_1 = ensure_array_like(REGISTRY);
       for (let $$index_1 = 0, $$length = each_array_1.length; $$index_1 < $$length; $$index_1++) {
         let s = each_array_1[$$index_1];
-        $$renderer2.push(`<button class="svelte-1uha8ag">${escape_html(s.label)}</button>`);
+        $$renderer2.push(`<button>${escape_html(s.label)}</button>`);
       }
       $$renderer2.push(`<!--]--></div></div>`);
     }
-    $$renderer2.push(`<!--]--></div>`);
+    $$renderer2.push(`<!--]--></main></div>`);
   });
 }
 export {
